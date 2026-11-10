@@ -1,0 +1,153 @@
+// End-to-end smoke test against a running server (default http://localhost:3100).
+// Covers: page renders, residential + renter + commercial lead flows, photo upload,
+// single generate_lead per eventId, idempotent resubmit, admin auth, sitemap/robots, screenshots.
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+let chromium;
+try { ({ chromium } = require("playwright")); } catch { ({ chromium } = require(require("node:child_process").execSync("npm root -g").toString().trim() + "/playwright")); }
+import fs from "node:fs";
+
+const BASE = process.env.BASE_URL ?? "http://localhost:3100";
+const ADMIN = process.env.ADMIN_TOKEN ?? "";
+const shots = process.env.SHOTS_DIR ?? "/tmp/sc-shots";
+fs.mkdirSync(shots, { recursive: true });
+const results = [];
+const ok = (name, cond, detail = "") => { results.push({ name, pass: !!cond, detail }); console.log(`${cond ? "PASS" : "FAIL"}  ${name}${detail ? " — " + detail : ""}`); };
+
+const PAGES = ["/", "/boston", "/south-florida", "/boston/cambridge", "/south-florida/boca-raton", "/residential", "/renters", "/landlords", "/commercial", "/commercial/hospitals", "/commercial/universities-schools", "/commercial/hotels-hospitality", "/commercial/hoa-condos", "/commercial/property-management", "/services/shower-restoration", "/services/commercial-restoration", "/bathroom-refresh", "/free-assessment", "/commercial-site-assessment", "/gallery", "/about", "/process", "/service-areas", "/resources", "/resources/restore-or-replace-bathroom-tile", "/contact", "/thank-you", "/privacy", "/terms", "/renters/landlord-approval", "/commercial/capabilities"];
+
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+const page = await ctx.newPage();
+const consoleErrors = [];
+page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(`${page.url()}: ${m.text()}`); });
+
+for (const p of PAGES) {
+  const r = await page.goto(BASE + p, { waitUntil: "networkidle" });
+  const h1 = await page.locator("h1").first().textContent().catch(() => "");
+  ok(`render ${p}`, r?.status() === 200 && h1, `${r?.status()} "${(h1 ?? "").slice(0, 60)}"`);
+}
+// SEO checks
+const flHtml = await (await fetch(BASE + "/south-florida/boca-raton")).text();
+ok("pre-launch FL page is noindex", /<meta name="robots" content="noindex/.test(flHtml));
+const bosHtml = await (await fetch(BASE + "/boston/cambridge")).text();
+ok("Boston city page indexable + canonical", !/noindex/.test(bosHtml) && /rel="canonical" href="[^"]*\/boston\/cambridge"/.test(bosHtml));
+ok("no AggregateRating schema (no fake reviews)", !/AggregateRating/.test(bosHtml + flHtml));
+const sm = await (await fetch(BASE + "/sitemap.xml")).text();
+ok("sitemap includes Boston cities, excludes FL pre-launch", sm.includes("/boston/newton") && !sm.includes("/south-florida/"));
+ok("robots disallows admin", (await (await fetch(BASE + "/robots.txt")).text()).includes("Disallow: /admin"));
+
+async function dl() { return page.evaluate(() => (window.dataLayer || []).filter((e) => e && e.event).map((e) => ({ event: e.event, event_id: e.event_id, market: e.market }))); }
+
+// Residential flow with photo
+await page.goto(BASE + "/free-assessment", { waitUntil: "networkidle" });
+await page.evaluate(() => localStorage.setItem("sc_consent_v1", JSON.stringify({ analytics_storage: "granted", ad_storage: "granted", ad_user_data: "granted", ad_personalization: "granted" })));
+await page.goto(BASE + "/free-assessment?utm_source=google&utm_medium=cpc&utm_campaign=bos_shower&gclid=TEST123", { waitUntil: "networkidle" });
+await page.screenshot({ path: `${shots}/assessment-step1.png`, fullPage: false });
+await page.fill('[data-testid="firstName"]', "Test");
+await page.fill('[data-testid="email"]', `qa+${Date.now()}@example.com`);
+await page.fill('[data-testid="phone"]', "6175550101");
+await page.fill('[data-testid="zip"]', "02139");
+await page.click('[data-testid="next"]');
+await page.getByText("Shower tile & grout").click();
+await page.click('[data-testid="next"]');
+// 1x1 jpeg
+const jpg = Buffer.from("/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=", "base64");
+await page.setInputFiles('[data-testid="photo-input"]', { name: "shower.jpg", mimeType: "image/jpeg", buffer: jpg });
+await page.waitForSelector('img[alt="shower.jpg"]', { timeout: 10000 });
+ok("photo uploaded + thumbnail shown", true);
+await page.waitForTimeout(3200); // pass bot-timing guard
+await page.click('[data-testid="next"]');
+await page.click('[data-testid="contact-consent"]');
+await page.screenshot({ path: `${shots}/assessment-final-step.png` });
+const [resp] = await Promise.all([page.waitForResponse((r) => r.url().includes("/api/leads")), page.click('[data-testid="submit"]')]);
+const body = await resp.json();
+ok("residential lead accepted", resp.status() === 200 && body.market === "boston", JSON.stringify(body));
+await page.waitForURL(/thank-you/, { timeout: 10000 });
+ok("redirected to thank-you", page.url().includes("/thank-you"));
+let events = await dl();
+const leads = events.filter((e) => e.event === "generate_lead");
+ok("exactly one generate_lead", leads.length === 1 && leads[0].event_id?.startsWith("lead_"), JSON.stringify(leads));
+ok("photo_upload_success fired", events.some((e) => e.event === "photo_upload_success"));
+await page.reload({ waitUntil: "networkidle" });
+events = await dl();
+ok("no generate_lead on thank-you reload", !events.some((e) => e.event === "generate_lead"));
+const attr = await page.evaluate(() => JSON.parse(localStorage.getItem("sc_attr_v1") || "{}"));
+ok("attribution persisted (utm + gclid)", attr.utm_campaign === "bos_shower" && attr.gclid === "TEST123");
+
+// Renter flow + roommate calculator
+await page.goto(BASE + "/renters", { waitUntil: "networkidle" });
+const share = await page.locator('[data-testid="rc-share"]').first().textContent();
+ok("roommate calculator default ($1,500 / 3)", share === "$500", share);
+await page.locator('[data-testid="roommate-calculator"] button[aria-label="More people"]').first().click();
+ok("roommate calculator updates (/4)", (await page.locator('[data-testid="rc-share"]').first().textContent()) === "$375");
+await page.screenshot({ path: `${shots}/renters.png`, fullPage: true });
+
+// Direct API: renter strips landlord details w/o consent; duplicate is idempotent; validation errors
+const ev = `lead_qa_${Date.now()}`;
+const renterBody = { variant: "renter", firstName: "R", email: "r@example.com", phone: "6175550102", zip: "02143", contactConsent: true, eventId: ev, roommates: 3, landlordName: "Should Drop", startedAt: Date.now() - 10000, attribution: {} };
+const r1 = await fetch(BASE + "/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(renterBody) });
+const r2 = await fetch(BASE + "/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(renterBody) });
+const j2 = await r2.json();
+ok("renter lead accepted", r1.status === 200);
+ok("duplicate submit is idempotent", j2.duplicate === true, JSON.stringify(j2));
+const bad = await fetch(BASE + "/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ variant: "commercial", firstName: "x", email: "bad", phone: "1", zip: "1", contactConsent: true, eventId: "lead_bad_123456" }) });
+ok("invalid commercial lead rejected 422", bad.status === 422);
+const flLead = await fetch(BASE + "/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ variant: "residential", firstName: "F", email: "f@example.com", phone: "5615550101", zip: "33432", contactConsent: true, eventId: `lead_fl_${Date.now()}`, startedAt: Date.now() - 10000 }) });
+ok("FL lead routed to pre-launch market", (await flLead.json()).marketStatus === "pre-launch");
+
+// Commercial flow (UI)
+await page.goto(BASE + "/commercial-site-assessment?segment=hospitals", { waitUntil: "networkidle" });
+await page.fill('[data-testid="firstName"]', "Facilities");
+await page.fill('[data-testid="email"]', `fd+${Date.now()}@example.org`);
+await page.fill('[data-testid="phone"]', "6175550199");
+await page.fill('[data-testid="zip"]', "02115");
+await page.fill('[data-testid="organization"]', "Example Medical Center");
+await page.fill('[data-testid="jobTitle"]', "Director of Facilities");
+await page.click('[data-testid="next"]');
+ok("segment preselected from URL", (await page.locator('[data-testid="segment"]').inputValue()) === "hospitals");
+await page.click('[data-testid="next"]');
+await page.selectOption("select >> nth=0", "25to75k");
+await page.click('[data-testid="next"]');
+await page.waitForTimeout(3200);
+await page.click('[data-testid="contact-consent"]');
+const [cr] = await Promise.all([page.waitForResponse((r) => r.url().includes("/api/leads")), page.click('[data-testid="submit"]')]);
+const cj = await cr.json();
+ok("commercial lead accepted + hot/warm", cr.status() === 200 && ["hot", "warm"].includes(cj.tier), JSON.stringify(cj));
+
+// Admin
+const unauth = await fetch(BASE + "/api/admin/quote", { method: "POST", body: "{}" });
+ok("admin API blocked without token", unauth.status === 401);
+if (ADMIN) {
+  const q = await fetch(BASE + "/api/admin/quote", { method: "POST", headers: { Authorization: `Bearer ${ADMIN}`, "Content-Type": "application/json" }, body: JSON.stringify({ market: "boston", zip: "02116", lines: [{ service: "shower_restoration", quantity: 1 }] }) });
+  const qj = await q.json();
+  ok("admin quote works, customer view strips internals", q.status === 200 && qj.internal.internal && !JSON.stringify(qj.customer).includes("techPay"));
+  const s = await fetch(BASE + "/api/admin/schedule", { method: "POST", headers: { Authorization: `Bearer ${ADMIN}`, "Content-Type": "application/json" }, body: JSON.stringify({ action: "suggest", zip: "02459" }) });
+  const sj = await s.json();
+  ok("admin schedule suggest (Newton → Tuesday zone)", sj.suggestion?.zone?.id === "bos-west" && sj.suggestion.primary.day === "tuesday");
+  await page.goto(BASE + "/admin", { waitUntil: "networkidle" });
+  await page.fill("#token", ADMIN);
+  await Promise.all([page.waitForURL(/dashboard/), page.click("button:has-text('Sign in')")]);
+  const leadsStat = await page.locator("text=Leads").first().isVisible();
+  ok("admin dashboard loads after login", leadsStat);
+  await page.screenshot({ path: `${shots}/admin-dashboard.png`, fullPage: true });
+  await page.goto(BASE + "/admin/dashboard?view=ops", { waitUntil: "networkidle" });
+  await page.screenshot({ path: `${shots}/admin-ops.png`, fullPage: true });
+}
+
+// Screenshots: desktop + mobile key pages
+for (const [p, n] of [["/", "home"], ["/commercial", "commercial"], ["/boston/cambridge", "city-cambridge"], ["/services/shower-restoration", "service"]]) {
+  await page.goto(BASE + p, { waitUntil: "networkidle" });
+  await page.screenshot({ path: `${shots}/${n}-desktop.png`, fullPage: true });
+}
+const mob = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+const mp = await mob.newPage();
+for (const [p, n] of [["/", "home"], ["/free-assessment", "assessment"], ["/renters", "renters"]]) {
+  await mp.goto(BASE + p, { waitUntil: "networkidle" });
+  await mp.screenshot({ path: `${shots}/${n}-mobile.png`, fullPage: false });
+}
+ok("no console errors", consoleErrors.length === 0, consoleErrors.slice(0, 5).join(" | "));
+await browser.close();
+const failed = results.filter((r) => !r.pass);
+console.log(`\n${results.length - failed.length}/${results.length} passed`);
+process.exit(failed.length ? 1 : 0);
