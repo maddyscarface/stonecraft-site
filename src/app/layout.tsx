@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/inter";
-import "@fontsource/playfair-display/400.css";
-import "@fontsource/playfair-display/600.css";
-import "@fontsource/playfair-display/700.css";
+import "@fontsource-variable/manrope";
+import "@fontsource-variable/cormorant-garamond";
+import "@fontsource-variable/cormorant-garamond/wght-italic.css";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -18,13 +17,14 @@ export const metadata: Metadata = {
   title: { default: "StoneCraft — Tile, Grout & Stone Restoration", template: "%s" },
   description: site.supporting,
   icons: { icon: "/favicon.svg" },
+  ...(process.env.SITE_NOINDEX === "true" || process.env.VERCEL_ENV === "preview" ? { robots: { index: false, follow: false } } : {}),
 };
 
-export const viewport: Viewport = { themeColor: "#1A3828", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#191917", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const navWithServices = nav.map((n) => n.label === "Services" ? { ...n, children: services.map((s) => ({ label: s.name, href: `/services/${s.slug}` })) } : n);
-  const pub = markets.map((m) => ({ id: m.id, shortName: m.shortName, phoneE164: m.phoneE164, phoneDisplay: m.phoneDisplay }));
+  const pub = markets.map((m) => ({ id: m.id, shortName: m.shortName, phoneE164: m.phoneE164, phoneDisplay: m.phoneDisplay, email: m.email }));
   return (
     <html lang="en">
       <body className="font-sans antialiased">
