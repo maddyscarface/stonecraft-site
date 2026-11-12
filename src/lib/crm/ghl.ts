@@ -16,6 +16,8 @@ import type { LeadInput } from "@/lib/leads/schema";
 import type { Routing } from "@/lib/leads/routing";
 import type { Score } from "@/lib/leads/scoring";
 import { entryStage, externalContactId, normPhone, PIPELINES } from "./sync";
+import { followUpPlan, type FollowUpStep } from "./followup";
+import { BRAND_TAG, scoreBand } from "@/config/crm";
 
 const API = "https://services.leadconnectorhq.com";
 const VERSION = "2021-07-28";
@@ -81,9 +83,16 @@ export function buildContactPayload(lead: LeadInput, routing: Routing, score: Sc
     state: routing.market?.state,
     companyName: lead.variant === "commercial" ? lead.organization : lead.variant === "landlord" ? lead.company : undefined,
     source: lead.attribution.utm_source ? `${lead.attribution.utm_source}/${lead.attribution.utm_medium ?? ""}` : "website",
-    tags: [...routing.tags, `tier:${score.tier}`],
-    customFields: Object.entries(cf).filter(([, v]) => v !== undefined && v !== "").map(([key, field_value]) => ({ key, field_value })),
+    tags: Array.from(new Set([...routing.tags, BRAND_TAG, `tier:${score.tier}`, `score:${scoreBand(score.score)}`, ...(lead.smsConsent ? [] : ["sms:no-consent"])])),
+    customFields: customFieldList(cf),
   };
+}
+
+/** Field ids win over keys when GHL_CUSTOM_FIELD_IDS is configured (GHL v2 accepts either). */
+export function customFieldList(cf: Record<string, string | number | boolean | undefined>, idMapJson = process.env.GHL_CUSTOM_FIELD_IDS) {
+  let ids: Record<string, string> = {};
+  try { ids = idMapJson ? (JSON.parse(idMapJson) as Record<string, string>) : {}; } catch { console.warn("[ghl] GHL_CUSTOM_FIELD_IDS is not valid JSON — sending fields by key"); }
+  return Object.entries(cf).filter(([, v]) => v !== undefined && v !== "").map(([key, field_value]) => (ids[key] ? { id: ids[key], field_value } : { key, field_value }));
 }
 
 export function opportunityName(lead: LeadInput, routing: Routing) {
@@ -91,17 +100,22 @@ export function opportunityName(lead: LeadInput, routing: Routing) {
   return `${who} — ${routing.city ?? lead.zip} — ${lead.variant}`;
 }
 
-async function call(path: string, method: string, token: string, body?: unknown) {
+/** GHL call with bounded retry on 429/5xx (exponential backoff, max 3 attempts). */
+async function call(path: string, method: string, token: string, body?: unknown, attempt = 1): Promise<any> {
   const res = await fetch(`${API}${path}`, {
     method, headers: { Authorization: `Bearer ${token}`, Version: VERSION, "Content-Type": "application/json", Accept: "application/json" },
     body: body ? JSON.stringify(body) : undefined, cache: "no-store",
   });
   const text = await res.text();
+  if ((res.status === 429 || res.status >= 500) && attempt < 3) {
+    await new Promise((r) => setTimeout(r, 300 * 2 ** attempt));
+    return call(path, method, token, body, attempt + 1);
+  }
   if (!res.ok) throw new Error(`GHL ${method} ${path} ${res.status}: ${text.slice(0, 300)}`);
   return text ? JSON.parse(text) : {};
 }
 
-export type GhlResult = { mode: "live" | "dry-run"; contactId?: string; opportunityId?: string; payloads?: unknown; error?: string };
+export type GhlResult = { mode: "live" | "dry-run"; contactId?: string; opportunityId?: string; followUps?: { hook: string; enrolled: boolean; reason?: string }[]; payloads?: unknown; error?: string };
 
 export async function pushLeadToGhl(lead: LeadInput, routing: Routing, score: Score, photoUrls: string[], extra: { gaClientId?: string } = {}): Promise<GhlResult> {
   const cfg = ghlConfig(routing);
@@ -116,7 +130,13 @@ export async function pushLeadToGhl(lead: LeadInput, routing: Routing, score: Sc
     routing.marketStatus === "pre-launch" ? "MARKET PRE-LAUNCH: do not book until availability confirmed." : "",
   ].filter(Boolean).join("\n\n");
 
-  if (!cfg.configured) return { mode: "dry-run", payloads: { contact, opportunity: { pipeline: routing.pipeline, stage: stageName, stageEnv }, note } };
+  const plan: FollowUpStep[] = followUpPlan(lead as LeadInput & { isPropertyManager?: boolean }, routing, score);
+
+  if (!cfg.configured) {
+    const payloads = { contact, opportunity: { pipeline: routing.pipeline, pipelineEnv: `${cfg.prefix}_PIPELINE_${envKey(routing.pipeline)}`, stage: stageName, stageEnv }, note, followUps: plan };
+    if (process.env.GHL_LOG_DRY_RUN !== "false") console.info("[ghl:dry-run]", JSON.stringify({ event: lead.eventId, market: routing.marketId, pipeline: routing.pipeline, stage: stageName, tier: score.tier, score: score.score, hooks: plan.map((p) => p.hook) }));
+    return { mode: "dry-run", payloads, followUps: plan.map((p) => ({ hook: p.hook, enrolled: false, reason: "dry-run" })) };
+  }
 
   try {
     const up = await call("/contacts/upsert", "POST", cfg.token!, contact);
@@ -131,10 +151,27 @@ export async function pushLeadToGhl(lead: LeadInput, routing: Routing, score: Sc
       });
       opportunityId = opp?.opportunity?.id ?? opp?.id;
     }
-    return { mode: "live", contactId, opportunityId };
+    // Follow-up automation: enrol in each configured workflow. GHL ignores re-enrolment of an
+    // active contact, so retries are duplicate-safe.
+    const followUps = await Promise.all(plan.map(async (p) => {
+      if (!p.workflowId) return { hook: p.hook, enrolled: false, reason: `${p.workflowEnv} not set` };
+      try { await call(`/contacts/${contactId}/workflow/${p.workflowId}`, "POST", cfg.token!, {}); return { hook: p.hook, enrolled: true }; }
+      catch (e) { return { hook: p.hook, enrolled: false, reason: (e as Error).message.slice(0, 120) }; }
+    }));
+    return { mode: "live", contactId, opportunityId, followUps };
   } catch (e) {
     return { mode: "live", error: (e as Error).message };
   }
 }
 
 export const pipelineStages = PIPELINES;
+
+/** Intent-data contact upsert (tags only, no opportunity, no workflows). Dry-run without a token. */
+export async function upsertIntentContact(s: { email?: string; phone?: string; firstName?: string; lastName?: string; company?: string; zip?: string; state?: string }, tags: string[]): Promise<GhlResult> {
+  const token = process.env.GHL_PRIVATE_TOKEN;
+  const locationId = s.state === "FL" ? process.env.GHL_LOCATION_ID_FL : process.env.GHL_LOCATION_ID_BOSTON;
+  const contact = { locationId, email: s.email, phone: s.phone ? normPhone(s.phone) : undefined, firstName: s.firstName, lastName: s.lastName, companyName: s.company, postalCode: s.zip, source: "intent-data", tags };
+  if (!token || !locationId) return { mode: "dry-run", payloads: { contact } };
+  try { const up = await call("/contacts/upsert", "POST", token, contact); return { mode: "live", contactId: up?.contact?.id ?? up?.id }; }
+  catch (e) { return { mode: "live", error: (e as Error).message }; }
+}
