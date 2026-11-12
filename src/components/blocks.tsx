@@ -2,7 +2,7 @@ import { PricingViewBeacon } from "@/components/estimate/PricingViewBeacon";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Camera, ClipboardCheck, MessageCircle, Sparkles, CalendarCheck, ShieldCheck } from "lucide-react";
 import type { FAQ } from "@/config/services";
-import { services, publicPriceRanges } from "@/config/services";
+import { services, publicPriceRanges, PRICE_RANGES_OWNER_REVIEWED } from "@/config/services";
 import { verifiedTrust, site } from "@/config/site";
 import { segments } from "@/config/segments";
 import { segmentImage, serviceImage, type PhotoKey } from "@/config/photos";
@@ -182,7 +182,7 @@ export function RestoreVsReplace() {
 }
 
 export function PriceGuide({ show }: { show: boolean }) {
-  if (!show) return <p className="border border-cream-dark bg-white p-6 text-sm">Pricing is set after we review your photos. You'll receive a written scope and price before anything is booked.</p>;
+  if (!show || !PRICE_RANGES_OWNER_REVIEWED) return <p className="border border-cream-dark bg-white p-6 text-sm">Pricing is set after we review your photos. You'll receive a written scope and price before anything is booked.</p>;
   return (
     <div id="price-guide" className="scroll-mt-24 self-start border-t-2 border-bronze bg-white p-7 shadow-card">
       <PricingViewBeacon where="price-guide" />
@@ -205,7 +205,7 @@ export function FinalCta({ title = "Ready to see what's possible?", sub, commerc
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             {commercial
               ? <><Link href="/commercial-site-assessment" className="btn btn-linen">Request a Commercial Site Assessment</Link><Link href="/commercial-site-assessment?program=multi-property" className="btn btn-ghost">Discuss a Multi-Property Program</Link></>
-              : <><Link href="/free-assessment" className="btn btn-linen">Send Photos — Get a Free Assessment</Link><Link href="/commercial" className="btn btn-ghost">Commercial Property Services</Link></>}
+              : <><Link href="/free-assessment" className="btn btn-linen">Get a Photo Assessment</Link><Link href="/commercial" className="btn btn-ghost">Commercial Property Services</Link></>}
           </div>
         </div>
       </div>

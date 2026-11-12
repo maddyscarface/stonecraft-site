@@ -47,6 +47,8 @@ export function PhotoUpload({ eventId, value, onChange }: { eventId: string; val
         if (!put.ok) throw new Error(`Upload failed (${put.status})`);
         added.push({ key: s.key, name: f.name, preview: URL.createObjectURL(blob) });
         track("photo_upload_success", { count: value.length + added.length });
+        // Spec §4 funnel event. Only a count is sent: never photos, filenames or URLs.
+        track("photos_received", { count: value.length + added.length });
       } catch (e) {
         setError(`${f.name}: ${(e as Error).message}. You can also text photos after submitting.`);
       } finally { setBusy((n) => n - 1); }
