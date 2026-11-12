@@ -178,6 +178,12 @@ export const findService = (slug: string) => services.find((s) => s.slug === slu
  * Owner-approved public price ranges (Boston only — from the StoneCraft Boston spec).
  * These are guidance, not quotes. Florida shows "priced after assessment" until approved.
  */
+/**
+ * Build 04 §2: preliminary ranges are shown only when the owner has reviewed them. These ranges
+ * come from the owner's Boston spec; set to false to hide every public range site-wide (all pages
+ * then show "priced after your photo assessment"). [OWNER TO RE-CONFIRM for 2026.]
+ */
+export const PRICE_RANGES_OWNER_REVIEWED = true;
 export const publicPriceRanges: Record<string, { label: string; range: string }> = {
   shower: { label: "Shower restoration", range: "$1,200 – $2,500" },
   floor: { label: "Tile & grout floor", range: "$600 – $1,800" },

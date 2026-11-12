@@ -28,7 +28,7 @@ export const segments: Segment[] = [
     eyebrow: "For homeowners",
     h1: "Your Home's Surfaces, Restored—Without the Remodel",
     sub: "Showers, tile floors, grout, marble and stone brought back with professional restoration. Send photos and we'll tell you honestly what's possible.",
-    primaryCta: { label: "Send Photos — Get a Free Assessment", href: "/free-assessment?type=homeowner" },
+    primaryCta: { label: "Get a Photo Assessment", href: "/free-assessment?type=homeowner" },
     secondaryCta: { label: "See the 1–2 Day Bathroom Refresh", href: "/bathroom-refresh" },
     pains: ["Grout that stays dark no matter how often you clean", "Caulk that cracks or grows mildew", "Marble that's dull or etched", "A bathroom you'd like to update before selling—without a remodel"],
     offers: [
@@ -52,7 +52,7 @@ export const segments: Segment[] = [
     eyebrow: "For renters & roommates",
     h1: "Your Apartment Bathroom Should Feel as Good as the Rest of Your Home.",
     sub: "A 1–2 day bathroom refresh for renters: grout, shower and caulk restoration, with landlord approval coordinated before any work and optional cost-sharing between roommates.",
-    primaryCta: { label: "Send Photos — Get a Free Assessment", href: "/free-assessment?type=renter" },
+    primaryCta: { label: "Get a Photo Assessment", href: "/free-assessment?type=renter" },
     secondaryCta: { label: "Get the Landlord Approval Template", href: "/renters/landlord-approval" },
     pains: ["Grout and caulk that were dingy on move-in day", "A shared bathroom nobody wants to deep-clean", "A landlord who won't renovate but might approve a refresh"],
     offers: [
@@ -135,7 +135,7 @@ export const segments: Segment[] = [
     howWeWork: ["Facility assessment request", "Site walk with facilities/EVS to confirm access, hours and PPE rules", "Written scope by restroom/area with phasing plan", "Work in permitted windows; documentation delivered after each phase"],
     formVariant: "commercial", customerType: "commercial",
     faq: [
-      { q: "Do you follow infection-control requirements?", a: "We build the facility's requirements—work zones, barriers, PPE and hours—into the scope. Specific protocols (such as ICRA classifications) are confirmed with your infection-prevention team during the site walk." },
+      { q: "Do you follow infection-control requirements?", a: "We build the facility's requirements—work zones, barriers, PPE and hours—into the scope. Specific protocols (such as ICRA classifications) are confirmed with your infection-prevention team during the site walk. We don't certify infection-control compliance; your infection-prevention team remains the authority on it." },
       { q: "Can you share references?", a: "Yes, where clients have authorised it. We never name healthcare clients publicly without written permission." },
     ],
     seoTitle: "Hospital Restroom Tile & Grout Restoration | StoneCraft Commercial",
