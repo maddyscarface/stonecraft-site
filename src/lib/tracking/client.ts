@@ -6,6 +6,7 @@
  */
 
 import { oaiqConsent, openAiRefs } from "@/lib/openai-ads/client";
+import { tracking } from "@/config/tracking";
 
 type Consent = { analytics_storage: "granted" | "denied"; ad_storage: "granted" | "denied"; ad_user_data: "granted" | "denied"; ad_personalization: "granted" | "denied" };
 
@@ -69,7 +70,22 @@ export function captureAttribution(): Attribution {
   const hasCampaign = UTMS.some((k) => url.searchParams.get(k)) || CLICK_IDS.some((k) => url.searchParams.get(k));
   if (hasCampaign) {
     for (const k of [...UTMS, ...CLICK_IDS]) { const v = url.searchParams.get(k); if (v) next[k] = v; }
-    next.last_touch_source = url.searchParams.get("utm_source") ?? (url.searchParams.get("gclid") ? "google" : url.searchParams.get("fbclid") ? "meta" : undefined);
+    next.last_touch_source = url.searchParams.get("utm_source") ?? (url.searchParams.get("gclid") || url.searchParams.get("gbraid") || url.searchParams.get("wbraid") ? "google" : url.searchParams.get("fbclid") ? "meta" : url.searchParams.get("msclkid") ? "microsoft" : undefined);
+    next.last_touch_medium = url.searchParams.get("utm_medium") ?? (url.searchParams.get("gclid") || url.searchParams.get("msclkid") ? "cpc" : url.searchParams.get("fbclid") ? "paid_social" : undefined);
+    next.last_touch_campaign = url.searchParams.get("utm_campaign") ?? undefined;
+    next.last_touch_at = new Date().toISOString();
+    // First touch is written once and never overwritten (revenue attribution: first vs last touch).
+    if (!next.first_touch_source) {
+      next.first_touch_source = next.last_touch_source;
+      next.first_touch_medium = next.last_touch_medium;
+      next.first_touch_campaign = next.last_touch_campaign;
+      next.first_touch_at = next.last_touch_at;
+    }
+  } else if (!next.first_touch_source) {
+    const ref = document.referrer && !document.referrer.includes(url.host) ? new URL(document.referrer).hostname : "";
+    next.first_touch_source = ref ? ref.replace(/^www\./, "") : "direct";
+    next.first_touch_medium = ref ? (/google|bing|duckduckgo|yahoo/.test(ref) ? "organic" : "referral") : "none";
+    next.first_touch_at = new Date().toISOString();
   }
   if (!next.landing_page) next.landing_page = url.pathname + url.search;
   if (!next.referrer && document.referrer && !document.referrer.includes(url.host)) next.referrer = document.referrer;
@@ -110,9 +126,25 @@ export function track(event: string, params: Record<string, unknown> = {}, meta?
   }
 }
 
-/** Enhanced conversions: expose user-provided data to GTM only at conversion time. */
+/** Enhanced conversions: expose user-provided data to GTM / gtag only at conversion time. */
 export function pushUserData(u: { email?: string; phone?: string; firstName?: string; lastName?: string; zip?: string }) {
   if (currentConsent().ad_user_data !== "granted") return;
   const digits = u.phone?.replace(/\D/g, "");
-  push({ event: "user_data_ready", user_data: { email: u.email, phone_number: digits ? `+1${digits.slice(-10)}` : undefined, address: { first_name: u.firstName, last_name: u.lastName, postal_code: u.zip, country: "US" } } });
+  const user_data = { email: u.email, phone_number: digits ? `+1${digits.slice(-10)}` : undefined, address: { first_name: u.firstName, last_name: u.lastName, postal_code: u.zip, country: "US" } };
+  push({ event: "user_data_ready", user_data });
+  if (!tracking.gtm) window.gtag?.("set", "user_data", user_data);
+}
+
+/**
+ * Lead conversion for direct gtag setups (GA4 generate_lead + Google Ads conversion).
+ * transaction_id = the shared event_id, so Google dedups browser vs offline uploads.
+ * With GTM, the `generate_lead` dataLayer event drives the same tags inside the container instead.
+ */
+export function gtagLeadConversion(eventId: string, params: Record<string, unknown> = {}) {
+  if (tracking.gtm || !window.gtag) return;
+  const value = tracking.leadValue;
+  if (tracking.ga4) window.gtag("event", "generate_lead", { event_id: eventId, value, currency: value ? "USD" : undefined, ...params });
+  if (tracking.googleAds && tracking.googleAdsLeadLabel && currentConsent().ad_storage === "granted") {
+    window.gtag("event", "conversion", { send_to: `${tracking.googleAds}/${tracking.googleAdsLeadLabel}`, value, currency: value ? "USD" : undefined, transaction_id: eventId });
+  }
 }
