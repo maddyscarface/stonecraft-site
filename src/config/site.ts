@@ -10,7 +10,7 @@
 export const site = {
   brand: "StoneCraft",
   legalEntity: "StoneCraft (operating entity: VERIFY — e.g. Flex Investments LLC d/b/a StoneCraft)",
-  primaryDomain: process.env.NEXT_PUBLIC_SITE_URL ?? "https://stonecraftboston.com",
+  primaryDomain: process.env.NEXT_PUBLIC_SITE_URL ?? "https://stonecraftpros.com",
   positioning: "Your Tile. Your Grout. Your Stone. Restored.",
   supporting:
     "Professional restoration of bathrooms, tile, grout, marble and natural stone—helping homeowners, renters and commercial properties renew existing surfaces without unnecessary replacement.",
@@ -19,7 +19,7 @@ export const site = {
   /** Response promise shown on forms. Change only after the response time has been measured for 30 days. */
   responsePromise: "We review every submission and reply the same business day.",
   social: {
-    instagram: "https://instagram.com/stonecraftboston", // VERIFY handle exists
+    instagram: "", // Add only once the handle is confirmed (was an unverified placeholder)
     tiktok: "",
     facebook: "",
   },

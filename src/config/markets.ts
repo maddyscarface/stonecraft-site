@@ -15,8 +15,9 @@ export type Market = {
   status: "live" | "pre-launch";
   statusNote?: string;
   timezone: string;
-  phoneE164: string;
-  phoneDisplay: string;
+  /** null until a real number is configured (NEXT_PUBLIC_PHONE_*). Phone UI, tel: links and schema telephone are hidden while null. */
+  phoneE164: string | null;
+  phoneDisplay: string | null;
   email: string;
   hours: string;
   /** No storefront: we describe a service area, not an office. */
@@ -31,6 +32,23 @@ export type Market = {
   ghl: { locationIdEnv: string; pipelineEnvPrefix: string };
 };
 
+/** Public contact mailbox for both markets (owner-confirmed). Override with NEXT_PUBLIC_CONTACT_EMAIL. */
+export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "info@stonecraftpros.com";
+
+/**
+ * Returns an E.164 number only when a real one is configured. Placeholder patterns
+ * (trailing seven zeros, 555-01xx, repeated digits) are rejected so a dummy number can never reach the site.
+ */
+export function realPhone(raw?: string | null): string | null {
+  const d = (raw ?? "").replace(/\D/g, "");
+  const ten = d.length === 11 && d.startsWith("1") ? d.slice(1) : d;
+  if (ten.length !== 10) return null;
+  if (/0000000$/.test(ten) || /^\d{3}0000000$/.test(ten) || /^\d{3}55501\d\d$/.test(ten) || /^(\d)\1{9}$/.test(ten)) return null;
+  return `+1${ten}`;
+}
+export const formatUs = (raw: string) => { const t = (realPhone(raw) ?? "").slice(2); return t ? `(${t.slice(0, 3)}) ${t.slice(3, 6)}-${t.slice(6)}` : ""; };
+export const hasPhone = (m: Pick<Market, "phoneE164">) => Boolean(m.phoneE164);
+
 const SLOTS = ["10:00", "11:30", "13:00", "14:30"];
 
 export const markets: Market[] = [
@@ -43,9 +61,9 @@ export const markets: Market[] = [
     state: "MA",
     status: "live",
     timezone: "America/New_York",
-    phoneE164: process.env.NEXT_PUBLIC_PHONE_BOSTON ?? "+16170000000",
-    phoneDisplay: process.env.NEXT_PUBLIC_PHONE_BOSTON_DISPLAY ?? "(617) 000-0000",
-    email: "hello@stonecraftboston.com",
+    phoneE164: realPhone(process.env.NEXT_PUBLIC_PHONE_BOSTON),
+    phoneDisplay: realPhone(process.env.NEXT_PUBLIC_PHONE_BOSTON) ? (process.env.NEXT_PUBLIC_PHONE_BOSTON_DISPLAY || formatUs(process.env.NEXT_PUBLIC_PHONE_BOSTON!)) : null,
+    email: CONTACT_EMAIL,
     hours: "Mon–Fri 7:30am–6pm · Sat 8am–2pm",
     serviceAreaLabel: "Serving Boston, Cambridge, Brookline, Newton and MetroWest",
     homeBase: { lat: 42.3601, lng: -71.0589 }, // VERIFY: set to real dispatch address
@@ -73,9 +91,9 @@ export const markets: Market[] = [
     status: (process.env.MARKET_FL_STATUS as "live" | "pre-launch") ?? "pre-launch",
     statusNote: "We're confirming scheduling availability in Southeast Florida. Send photos and we'll tell you when we can serve your address.",
     timezone: "America/New_York",
-    phoneE164: process.env.NEXT_PUBLIC_PHONE_FL ?? "+15610000000",
-    phoneDisplay: process.env.NEXT_PUBLIC_PHONE_FL_DISPLAY ?? "(561) 000-0000",
-    email: "hello@stonecraftsefl.com", // VERIFY domain
+    phoneE164: realPhone(process.env.NEXT_PUBLIC_PHONE_FL),
+    phoneDisplay: realPhone(process.env.NEXT_PUBLIC_PHONE_FL) ? (process.env.NEXT_PUBLIC_PHONE_FL_DISPLAY || formatUs(process.env.NEXT_PUBLIC_PHONE_FL!)) : null,
+    email: CONTACT_EMAIL,
     hours: "Mon–Fri 8am–5:30pm",
     serviceAreaLabel: "Serving Palm Beach County and Broward County",
     homeBase: { lat: 26.5, lng: -80.1 }, // VERIFY
