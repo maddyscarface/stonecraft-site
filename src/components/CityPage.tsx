@@ -37,7 +37,7 @@ export function CityPage({ market, city }: { market: string; city: string }) {
       <JsonLd data={serviceSchema({ name: "Tile, grout and stone restoration", description: c.intro, path: `/${m.slug}/${c.slug}`, areaServed: [`${c.name}, ${c.state}`] })} />
       <JsonLd data={faqSchema(faq)} />
       <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: m.name, path: `/${m.slug}` }, { name: c.name, path: `/${m.slug}/${c.slug}` }])} />
-      <PageHero image={m.id === "boston" ? "boston-brownstone-autumn" : "florida-palm"} eyebrow={m.brandName} title={`Tile, Grout & Stone Restoration in ${c.name}, ${c.state}`} sub={c.intro} primary={{ label: "Send Photos — Get a Free Assessment", href: "#get-started" }} secondary={{ label: "Commercial Property Services", href: "/commercial" }} note={m.status === "pre-launch" ? m.statusNote : undefined} />
+      <PageHero image={m.id === "boston" ? "boston-brownstone-autumn" : "florida-palm"} eyebrow={m.brandName} title={`Tile, Grout & Stone Restoration in ${c.name}, ${c.state}`} sub={c.intro} primary={{ label: "Get a Photo Assessment", href: "#get-started" }} secondary={{ label: "Commercial Property Services", href: "/commercial" }} note={m.status === "pre-launch" ? m.statusNote : undefined} />
       <Section>
         <div className="grid gap-10 md:grid-cols-2">
           <div><Heading eyebrow={`${c.name} properties`} title="What we see most often" sub={c.housing} /><Checklist items={c.commonIssues} /></div>

@@ -2,8 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Wordmark } from "./Header";
 import { markets } from "@/config/markets";
-import { services } from "@/config/services";
-import { site } from "@/config/site";
+import { serviceNav, site } from "@/config/site";
 import { PrivacyChoicesLink } from "./Tracking";
 
 export function Footer() {
@@ -24,7 +23,7 @@ export function Footer() {
         </div>
         <div>
           <h3 className="eyebrow mb-4 text-bone">Services</h3>
-          <ul className="space-y-2.5 text-sm">{services.map((s) => <li key={s.slug}><Link className="hover:text-bone" href={`/services/${s.slug}`}>{s.name}</Link></li>)}</ul>
+          <ul className="space-y-2.5 text-sm">{serviceNav.map((s) => <li key={s.href}><Link className="hover:text-bone" href={s.href}>{s.label}</Link></li>)}</ul>
         </div>
         <div>
           <h3 className="eyebrow mb-4 text-bone">Company</h3>

@@ -28,7 +28,7 @@ export function MarketHub({ slug }: { slug: string }) {
     <>
       <JsonLd data={businessSchema(m, all.map((c) => c.name))} />
       <JsonLd data={faqSchema(faq)} />
-      <PageHero image={marketImage[m.id]} eyebrow={m.brandName} title={`Tile, Grout & Stone Restoration Across ${m.name}`} sub={`Professional restoration for homeowners, renters, landlords and commercial facilities. ${m.serviceAreaLabel}.`} primary={{ label: "Send Photos — Get a Free Assessment", href: "#get-started" }} secondary={{ label: "Commercial Property Services", href: "/commercial" }} note={m.status === "pre-launch" ? m.statusNote : undefined} />
+      <PageHero image={marketImage[m.id]} eyebrow={m.brandName} title={`Tile, Grout & Stone Restoration Across ${m.name}`} sub={`Professional restoration for homeowners, renters, landlords and commercial facilities. ${m.serviceAreaLabel}.`} primary={{ label: "Get a Photo Assessment", href: "#get-started" }} secondary={{ label: "Commercial Property Services", href: "/commercial" }} note={m.status === "pre-launch" ? m.statusNote : undefined} />
       <TrustBar />
       <Section><Heading eyebrow="Services" title={`What we restore in ${m.name}`} /><ServiceGrid /></Section>
       <Section tone="white"><Heading eyebrow="Who we serve" title="Find your path" /><SegmentGrid ids={["homeowners", "renters", "landlords"]} /></Section>

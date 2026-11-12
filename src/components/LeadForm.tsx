@@ -9,6 +9,7 @@ import { EstimateQualifiers, validateQualifiers, withPricingSeen } from "./estim
 import { estimateConfig, qualifierTheme } from "@/config/estimate";
 import { oaiqLead } from "@/lib/openai-ads/client";
 import type { Qualifiers } from "@/lib/estimate/qualifiers";
+import { AREAS, COMMERCIAL_MATERIALS, FINISHES, ISSUES, MATERIALS, TREATMENTS, surfaceGuidance } from "@/config/surfaces";
 
 /** Surface ids in step 2 → estimate project type (pre-selects step 3). */
 const SURFACE_TO_PROJECT: Record<string, string> = { shower: "shower", bath_floor: "floor", kitchen: "floor", entry_mudroom: "floor", marble_stone: "marble", countertops: "countertop" };
@@ -50,7 +51,7 @@ export function LeadForm(props: LeadFormProps) {
   const [q, setQ] = useState<Qualifiers>({});
   const [qErrors, setQErrors] = useState<Partial<Record<keyof Qualifiers, string>>>({});
   const [step, setStep] = useState(1);
-  const [f, setF] = useState<Record<string, string | boolean | string[]>>({ zip: props.zip ?? "", town: props.town ?? "", segment: props.segment ?? "", surfaces: [], surfaceTypes: [], roommates: "2", units: "1", buildings: "1" });
+  const [f, setF] = useState<Record<string, string | boolean | string[]>>({ zip: props.zip ?? "", town: props.town ?? "", segment: props.segment ?? "", surfaces: [], surfaceTypes: [], materials: [], issues: [], treatments: [], roommates: "2", units: "1", buildings: "1", walkthroughRequested: true });
   const [photos, setPhotos] = useState<Uploaded[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -62,7 +63,7 @@ export function LeadForm(props: LeadFormProps) {
   useEffect(() => { if (props.customerType) setCtype(props.customerType); }, [props.customerType]);
 
   const set = (k: string, v: string | boolean | string[]) => {
-    if (!started.current) { started.current = Date.now(); track("form_start", { form_variant: variant, source_page: props.sourcePage }); }
+    if (!started.current) { started.current = Date.now(); track("form_start", { form_variant: variant, source_page: props.sourcePage }); track("assessment_start", { form_variant: variant, journey: isCommercial ? "commercial" : "residential", source_page: props.sourcePage }); }
     setF((p) => ({ ...p, [k]: v }));
     setErrors((e) => { const n = { ...e }; delete n[k]; return n; });
   };
@@ -79,12 +80,14 @@ export function LeadForm(props: LeadFormProps) {
       if (isCommercial) { if (!str("organization").trim()) e.organization = "Required"; if (!str("jobTitle").trim()) e.jobTitle = "Required"; }
     }
     if (s === 2 && isCommercial && !str("segment")) e.segment = "Choose a facility type";
+    if (s === 2 && !isCommercial && !props.compact && variant === "renter" && !f.approvalAcknowledged) e.approvalAcknowledged = "Please confirm before continuing";
     if (s === qStep && withQualifiers) {
       const qe = validateQualifiers(estimateConfig, q);
       setQErrors(qe);
       if (Object.keys(qe).length) return false;
     }
     if (s === steps && !f.contactConsent) e.contactConsent = "Please agree so we can reply";
+    if (s === steps && variant === "renter" && !f.approvalAcknowledged) e.contactConsent = "Please confirm the approval statement in step 2";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -109,10 +112,11 @@ export function LeadForm(props: LeadFormProps) {
       sourcePage: props.sourcePage, attribution: getAttribution(), eventId, website: str("website"), startedAt: started.current ?? Date.now(), adConsent: currentConsent().ad_storage === "granted",
     };
     if (withQualifiers) body.qualifiers = withPricingSeen(q);
+    if (!isCommercial) Object.assign(body, { dwelling: str("dwelling"), address: (q as Record<string, unknown>).address ?? "", material: str("material"), area: str("area"), showers: num("showers"), issues: f.issues, treatments: f.treatments, finish: str("finish") });
     if (variant === "residential") Object.assign(body, { surfaces: f.surfaces, duration: str("duration"), triedCleaning: str("triedCleaning"), goal: str("goal"), timeline: (withQualifiers ? q.start : undefined) ?? str("timeline") });
-    if (variant === "renter") Object.assign(body, { surfaces: f.surfaces, roommates: num("roommates") ?? 1, landlordApprovalStatus: str("landlordApprovalStatus") || "not_asked", landlordOutreachConsent: !!f.landlordOutreachConsent, landlordName: str("landlordName"), landlordContact: str("landlordContact"), moveInDate: str("moveInDate") });
+    if (variant === "renter") Object.assign(body, { surfaces: f.surfaces, roommates: num("roommates") ?? 1, landlordApprovalStatus: str("landlordApprovalStatus") || "not_asked", landlordOutreachConsent: !!f.landlordOutreachConsent, approverRole: str("approverRole"), approvalAcknowledged: !!f.approvalAcknowledged, landlordName: str("landlordName"), landlordContact: str("landlordContact"), moveInDate: str("moveInDate") });
     if (variant === "landlord") Object.assign(body, { surfaces: f.surfaces, company: str("company"), isPropertyManager: !!f.isPropertyManager, propertyType: str("propertyType"), units: num("units") ?? 1, bathroomsInScope: num("bathroomsInScope"), turnDate: str("turnDate"), occupied: str("occupied") });
-    if (variant === "commercial") Object.assign(body, { segment: str("segment") || "other", organization: str("organization"), jobTitle: str("jobTitle"), buildings: num("buildings") ?? 1, restrooms: num("restrooms"), squareFeet: num("squareFeet"), surfaceTypes: f.surfaceTypes, accessRestrictions: str("accessRestrictions"), workHours: str("workHours"), budget: str("budget"), procurement: str("procurement"), decisionRole: str("decisionRole"), decisionMakerName: str("decisionMakerName"), decisionMakerTitle: str("decisionMakerTitle"), timeline: str("timeline"), program: props.program });
+    if (variant === "commercial") Object.assign(body, { segment: str("segment") || "other", organization: str("organization"), jobTitle: str("jobTitle"), buildings: num("buildings") ?? 1, restrooms: num("restrooms"), squareFeet: num("squareFeet"), surfaceTypes: f.surfaceTypes, accessRestrictions: str("accessRestrictions"), operationalConstraints: str("operationalConstraints"), materials: f.materials, walkthroughRequested: !!f.walkthroughRequested, walkthroughWindow: str("walkthroughWindow"), workHours: str("workHours"), budget: str("budget"), procurement: str("procurement"), decisionRole: str("decisionRole"), decisionMakerName: str("decisionMakerName"), decisionMakerTitle: str("decisionMakerTitle"), timeline: str("timeline"), program: props.program });
 
     try {
       const res = await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": eventId }, body: JSON.stringify(body) });
@@ -176,6 +180,24 @@ export function LeadForm(props: LeadFormProps) {
               <label key={id} className="flex items-center gap-2 rounded border border-cream-dark p-2.5 text-sm"><input type="checkbox" checked={(f.surfaces as string[]).includes(id)} onChange={() => toggle("surfaces", id)} />{label}</label>
             ))}</div>
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Property"><select className="field" value={str("dwelling")} onChange={(e) => set("dwelling", e.target.value)} data-testid="dwelling"><option value="">Choose…</option><option value="house">House</option><option value="condo">Condo</option><option value="apartment">Apartment</option><option value="multi_unit">Multi-unit building</option></select></Field>
+            <Field label="Surface material" hint="Not sure? Choose ‘Other / not sure’ — your photos tell us."><select className="field" value={str("material")} onChange={(e) => set("material", e.target.value)} data-testid="material"><option value="">Choose…</option>{MATERIALS.map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select></Field>
+            <Field label="Approximate area"><select className="field" value={str("area")} onChange={(e) => set("area", e.target.value)} data-testid="area"><option value="">Choose…</option>{AREAS.map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select></Field>
+            <Field label="Number of showers"><select className="field" value={str("showers")} onChange={(e) => set("showers", e.target.value)} data-testid="showers"><option value="">Choose…</option>{[0, 1, 2, 3, 4].map((n) => <option key={n} value={n}>{n === 4 ? "4+" : n}</option>)}</select></Field>
+          </div>
+          <div><span className="label">Condition / what you&apos;re seeing</span>
+            <div className="grid gap-2 sm:grid-cols-2">{ISSUES.map(([id, label]) => (
+              <label key={id} className="flex items-center gap-2 border border-cream-dark p-2.5 text-sm"><input type="checkbox" checked={(f.issues as string[]).includes(id)} onChange={() => toggle("issues", id)} data-testid={`issue-${id}`} />{label}</label>
+            ))}</div>
+          </div>
+          <div><span className="label">Treatment you&apos;re interested in <span className="font-normal text-basalt/60">(each is a different service)</span></span>
+            <div className="grid gap-2 sm:grid-cols-2">{TREATMENTS.map(([id, label, help]) => (
+              <label key={id} className="flex items-start gap-2 border border-cream-dark p-2.5 text-sm" title={help}><input type="checkbox" className="mt-1" checked={(f.treatments as string[]).includes(id)} onChange={() => toggle("treatments", id)} data-testid={`treatment-${id}`} /><span><span className="font-semibold">{label}</span>{help && <span className="mt-0.5 block text-xs leading-snug text-basalt/60">{help}</span>}</span></label>
+            ))}</div>
+          </div>
+          <Field label="Preferred finish"><select className="field" value={str("finish")} onChange={(e) => set("finish", e.target.value)} data-testid="finish"><option value="">Choose…</option>{FINISHES.map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select></Field>
+          {surfaceGuidance(str("material"), str("finish"), f.treatments as string[]).map((n) => <p key={n} className="border-l-2 border-bronze-light bg-bronze-pale px-4 py-3 text-sm leading-relaxed" data-testid="surface-guidance">{n}</p>)}
           {variant === "residential" && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="How long has it bothered you?"><select className="field" value={str("duration")} onChange={(e) => set("duration", e.target.value)}><option value="">Choose…</option><option value="lt6m">Under 6 months</option><option value="6to12m">6–12 months</option><option value="1to3y">1–3 years</option><option value="3yplus">3+ years</option></select></Field>
@@ -190,7 +212,10 @@ export function LeadForm(props: LeadFormProps) {
                 <Field label="Landlord approval so far"><select className="field" value={str("landlordApprovalStatus")} onChange={(e) => set("landlordApprovalStatus", e.target.value)}><option value="not_asked">Haven't asked yet</option><option value="asked">Asked, waiting</option><option value="approved">Approved in writing</option><option value="declined">Declined</option></select></Field>
               </div>
               <div className="rounded border border-cream-dark bg-cream p-4 text-sm">
-                <p>We need <strong>written approval</strong> from your landlord or property manager before any work is booked.</p>
+                <p>We need <strong>written approval</strong> from the person authorised to approve work on the property before anything is booked. We never treat a renter&apos;s request as the owner&apos;s approval.</p>
+                <div className="mt-3 max-w-xs"><Field label="Who approves work on the property?"><select className="field" value={str("approverRole")} onChange={(e) => set("approverRole", e.target.value)} data-testid="approver-role"><option value="">Choose…</option><option value="landlord">Landlord / owner</option><option value="property_manager">Property manager</option><option value="building_manager">Building manager</option><option value="condo_association">Condo association</option><option value="other">Other / not sure</option></select></Field></div>
+                <label className="mt-3 flex items-start gap-2"><input type="checkbox" className="mt-1" checked={!!f.approvalAcknowledged} onChange={(e) => set("approvalAcknowledged", e.target.checked)} data-testid="approval-ack" /><span>I understand StoneCraft won&apos;t schedule work until the person authorised to approve it has agreed in writing, and I&apos;m not claiming approval I don&apos;t have. *</span></label>
+                {err("approvalAcknowledged")}
                 <label className="mt-3 flex items-start gap-2"><input type="checkbox" className="mt-1" checked={!!f.landlordOutreachConsent} onChange={(e) => set("landlordOutreachConsent", e.target.checked)} data-testid="landlord-consent" /><span>I authorise StoneCraft to contact my landlord / property manager about this request. (Optional — we'll confirm with you before reaching out.)</span></label>
                 {f.landlordOutreachConsent && <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <Field label="Landlord / manager name"><input className="field" value={str("landlordName")} onChange={(e) => set("landlordName", e.target.value)} /></Field>
@@ -218,14 +243,17 @@ export function LeadForm(props: LeadFormProps) {
           <div><Field label="Facility type" required><select className="field" value={str("segment")} onChange={(e) => set("segment", e.target.value)} data-testid="segment"><option value="">Choose…</option>{SEGMENTS.map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select></Field>{err("segment")}</div>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Buildings"><input className="field" inputMode="numeric" value={str("buildings")} onChange={(e) => set("buildings", e.target.value.replace(/\D/g, ""))} /></Field>
-            <Field label="Restrooms (approx.)"><input className="field" inputMode="numeric" value={str("restrooms")} onChange={(e) => set("restrooms", e.target.value.replace(/\D/g, ""))} /></Field>
+            <Field label="Restrooms / rooms in scope"><input className="field" inputMode="numeric" value={str("restrooms")} onChange={(e) => set("restrooms", e.target.value.replace(/\D/g, ""))} /></Field>
             <Field label="Tiled sq ft (approx.)"><input className="field" inputMode="numeric" value={str("squareFeet")} onChange={(e) => set("squareFeet", e.target.value.replace(/\D/g, ""))} /></Field>
           </div>
-          <div><span className="label">Surface types</span><div className="grid gap-2 sm:grid-cols-2">{COMMERCIAL_SURFACES.map((s) => <label key={s} className="flex items-center gap-2 rounded border border-cream-dark p-2.5 text-sm"><input type="checkbox" checked={(f.surfaceTypes as string[]).includes(s)} onChange={() => toggle("surfaceTypes", s)} />{s}</label>)}</div></div>
+          {str("segment") === "hospitals" && <p className="border-l-2 border-sage bg-bone px-4 py-3 text-sm leading-relaxed" data-testid="hospital-note">Healthcare work follows your facility&apos;s infection-prevention and safety requirements through a site-specific plan reviewed and approved by your team. We don&apos;t claim compliance before that plan exists.</p>}
+          <div><span className="label">Floor & wall materials</span><div className="grid gap-2 sm:grid-cols-4">{COMMERCIAL_MATERIALS.map(([id, l]) => <label key={id} className="flex items-center gap-2 border border-cream-dark p-2.5 text-sm"><input type="checkbox" checked={(f.materials as string[]).includes(id)} onChange={() => toggle("materials", id)} />{l}</label>)}</div></div>
+          <div><span className="label">Areas</span><div className="grid gap-2 sm:grid-cols-2">{COMMERCIAL_SURFACES.map((s) => <label key={s} className="flex items-center gap-2 rounded border border-cream-dark p-2.5 text-sm"><input type="checkbox" checked={(f.surfaceTypes as string[]).includes(s)} onChange={() => toggle("surfaceTypes", s)} />{s}</label>)}</div></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Required work hours"><select className="field" value={str("workHours")} onChange={(e) => set("workHours", e.target.value)}><option value="">Choose…</option><option value="business">Business hours</option><option value="evenings">Evenings</option><option value="overnight">Overnight</option><option value="weekends">Weekends</option><option value="flexible">Flexible</option></select></Field>
-            <Field label="Access restrictions" hint="Badging, escorts, infection control, occupied areas, elevator rules…"><input className="field" value={str("accessRestrictions")} onChange={(e) => set("accessRestrictions", e.target.value)} /></Field>
+            <Field label="Access restrictions" hint="Badging, escorts, occupied areas, elevator rules…"><input className="field" value={str("accessRestrictions")} onChange={(e) => set("accessRestrictions", e.target.value)} /></Field>
           </div>
+          <Field label="Current closures or operational constraints" hint="Areas that can't close, peak hours, events, occupancy, phasing needs…"><textarea className="field" rows={2} value={str("operationalConstraints")} onChange={(e) => set("operationalConstraints", e.target.value)} data-testid="constraints" /></Field>
         </fieldset>
       )}
 
@@ -237,6 +265,10 @@ export function LeadForm(props: LeadFormProps) {
             <Field label="Procurement process"><select className="field" value={str("procurement")} onChange={(e) => set("procurement", e.target.value)}><option value="">Choose…</option><option value="po">Purchase order</option><option value="rfp">RFP / bid</option><option value="approved_vendor">Approved-vendor list</option><option value="board_approval">Board approval</option><option value="unknown">Not sure</option></select></Field>
             <Field label="Your role in the decision"><select className="field" value={str("decisionRole")} onChange={(e) => set("decisionRole", e.target.value)}><option value="">Choose…</option><option value="decision_maker">I'm the decision maker</option><option value="influencer">I recommend / influence</option><option value="researching">Researching options</option></select></Field>
             <Field label="Timeline"><select className="field" value={str("timeline")} onChange={(e) => set("timeline", e.target.value)}><option value="">Choose…</option><option value="30d">Within 30 days</option><option value="90d">Within 90 days</option><option value="6m">Within 6 months</option><option value="next_fy">Next fiscal year</option><option value="unknown">Not sure</option></select></Field>
+          </div>
+          <div className="border border-cream-dark p-4">
+            <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={!!f.walkthroughRequested} onChange={(e) => set("walkthroughRequested", e.target.checked)} data-testid="walkthrough" /><span><strong>Request a site walkthrough.</strong> We walk the areas with your team, then send a written scope by area.</span></label>
+            {f.walkthroughRequested && <div className="mt-3"><Field label="Preferred days / times for the walkthrough"><input className="field" value={str("walkthroughWindow")} onChange={(e) => set("walkthroughWindow", e.target.value)} placeholder="e.g. Tue–Thu after 6 pm" /></Field></div>}
           </div>
           {str("decisionRole") && str("decisionRole") !== "decision_maker" && (
             <div className="grid gap-4 sm:grid-cols-2">
