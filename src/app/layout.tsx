@@ -9,7 +9,6 @@ import { Tracking } from "@/components/Tracking";
 import { MarketProvider } from "@/components/MarketContext";
 import { nav, site } from "@/config/site";
 import { markets } from "@/config/markets";
-import { services } from "@/config/services";
 
 
 export const metadata: Metadata = {
@@ -20,10 +19,10 @@ export const metadata: Metadata = {
   ...(process.env.SITE_NOINDEX === "true" || process.env.VERCEL_ENV === "preview" ? { robots: { index: false, follow: false } } : {}),
 };
 
-export const viewport: Viewport = { themeColor: "#191917", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#25292B", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const navWithServices = nav.map((n) => n.label === "Services" ? { ...n, children: services.map((s) => ({ label: s.name, href: `/services/${s.slug}` })) } : n);
+  const navWithServices = nav;
   const pub = markets.map((m) => ({ id: m.id, shortName: m.shortName, phoneE164: m.phoneE164, phoneDisplay: m.phoneDisplay, email: m.email }));
   return (
     <html lang="en">

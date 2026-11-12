@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
-import { AudienceSelector, BeforeAfter, RoommateCalculator, ServiceSelector } from "@/components/interactive";
+import { BeforeAfter, MacroCompare, RoommateCalculator, ServiceSelector } from "@/components/interactive";
 import { Checklist, Editorial, Faq, FinalCta, Heading, JsonLd, ProcessSteps, RestoreVsReplace, Section, SegmentGrid, ServiceGrid, TrustBar } from "@/components/blocks";
 import { Photo } from "@/components/Photo";
-import { marketImage, type PhotoKey } from "@/config/photos";
+import { beforeAfterPairs, marketImage, type PhotoKey } from "@/config/photos";
 import { markets } from "@/config/markets";
 import { coreCities } from "@/config/cities";
 import { flags, site } from "@/config/site";
@@ -42,11 +42,11 @@ export default function HomePage() {
         <div className="absolute inset-0 -z-10"><Photo k="vanity-dark-marble" priority sizes="100vw" /><div className="photo-shade-side absolute inset-0" /></div>
         <div className="container-sc py-24 md:py-36">
           <p className="eyebrow mb-7 text-bronze-light"><span className="rule-bronze" />Tile · Grout<span className="hidden sm:inline"> · Shower</span> · Stone</p>
-          <h1 className="max-w-4xl font-serif text-[46px] leading-[0.98] text-bone md:text-[86px]">Your tile. Your grout. Your stone. <em className="text-bronze-light">Restored.</em></h1>
-          <p className="mt-8 max-w-xl text-lg leading-relaxed text-bone/80">Professional tile, grout, shower and natural stone restoration for homeowners, renters, property managers and commercial facilities in Greater Boston and Southeast Florida.</p>
+          <h1 className="max-w-4xl font-serif text-[48px] leading-[0.98] text-bone md:text-[88px]">Restore the Surfaces <em className="text-bronze-light">You Love.</em></h1>
+          <p className="mt-8 max-w-xl text-lg leading-relaxed text-bone/85">Tile, grout, shower and stone restoration for homes and properties in Greater Boston and Southeast Florida.</p>
           <div className="mt-10 flex flex-wrap gap-3">
-            <Link href="/free-assessment" className="btn btn-linen" data-testid="hero-cta">Send Photos — Get a Free Assessment <ArrowRight size={15} /></Link>
-            <Link href="/commercial" className="btn btn-ghost">Commercial Property Services</Link>
+            <Link href="/free-assessment" className="btn btn-linen" data-testid="hero-cta">Get a Photo Assessment <ArrowRight size={15} /></Link>
+            <Link href="/commercial" className="btn btn-ghost" data-testid="hero-cta-commercial">Commercial Property Services</Link>
           </div>
           <dl className="mt-16 grid max-w-3xl grid-cols-1 gap-6 border-t border-white/15 pt-8 text-sm sm:grid-cols-3">
             {[["Step one", "Send 3–4 photos. No visit needed to start."], ["Before any work", "A written scope and price you approve."], ["Our advice", "Restore first — and we say so when it can't be."]].map(([t, d]) => (
@@ -57,8 +57,25 @@ export default function HomePage() {
         <span className="stock-note absolute bottom-3 right-4">Illustrative photo</span>
       </section>
 
-      {/* Hero selector */}
-      <AudienceSelector />
+      {/* Two journeys (spec §1): residential photo estimate vs commercial walkthrough / program */}
+      <section className="border-b border-basalt/10 bg-white">
+        <div className="container-sc grid md:grid-cols-2">
+          {[
+            { k: "Residential", t: "Request a photo-based estimate", d: "Homes, condos, renters and landlords. Send a few photos; get an honest read and a written range before anyone visits.", href: "/free-assessment", cta: "Get a Photo Assessment", img: "shower-marble-glass" as PhotoKey },
+            { k: "Commercial", t: "Request a walkthrough or recurring program", d: "Restrooms, lobbies and corridors for property managers, hospitality, education and healthcare facilities, scoped by area and scheduled around operations.", href: "/commercial-site-assessment", cta: "Request a Site Walkthrough", img: "restroom-elegant" as PhotoKey },
+          ].map((j, n) => (
+            <Link key={j.k} href={j.href} data-testid={`journey-${j.k.toLowerCase()}`} className={`group grid grid-cols-[96px_1fr] items-center gap-6 py-9 md:grid-cols-[132px_1fr] ${n === 0 ? "border-b border-basalt/10 md:border-b-0 md:border-r md:pr-10" : "md:pl-10"}`}>
+              <div className="relative aspect-square overflow-hidden bg-basalt"><div className="absolute inset-0 transition duration-700 group-hover:scale-[1.06]"><Photo k={j.img} sizes="132px" /></div></div>
+              <div>
+                <p className="eyebrow text-sage-ink">{j.k}</p>
+                <h2 className="mt-2 font-serif text-[26px] leading-tight md:text-[30px]">{j.t}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-basalt/70">{j.d}</p>
+                <span className="link-arrow mt-4 text-bronze">{j.cta} <ArrowRight size={14} className="transition group-hover:translate-x-1" /></span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* 2 Studio intro + market selection */}
       <Section tone="white">
@@ -87,10 +104,13 @@ export default function HomePage() {
       {/* 4 Before/after */}
       <Section tone="hunter">
         <div className="grid gap-12 md:grid-cols-[1fr_1.1fr] md:items-center">
-          <Heading light eyebrow="Restoration, not renovation" title="What wears out is rarely the tile." sub="Real project photos appear here only with the customer's written permission. Until then, the slider is an illustration of the kind of change grout restoration makes." />
+          <div>
+            <Heading light eyebrow="In the detail" title="What wears out is rarely the tile." sub="Grout joints, caulk lines, glaze and polish carry the wear. Drag across each surface to see the kind of change restoration makes." />
+            <p className="-mt-4 max-w-md text-xs leading-relaxed text-bone/60">These comparisons are illustrative: licensed stock photography with simulated wear, shown at the same camera angle. Real StoneCraft project photos appear only with the customer&apos;s written permission.</p>
+          </div>
           {gallery.length ? (
             <div className="grid gap-6">{gallery.map((g) => <div key={g.id}><BeforeAfter before={g.before} after={g.after} alt={g.alt} /><p className="mt-2 text-sm text-bronze-light">{g.permission.allowsTown ? g.town : ""} · {g.service}</p></div>)}</div>
-          ) : <BeforeAfter illustration />}
+          ) : <MacroCompare dark pairs={beforeAfterPairs} />}
         </div>
         <div className="mt-16 grid gap-px bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
           {problems.map(([t, b, img]) => (

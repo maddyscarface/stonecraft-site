@@ -8,45 +8,55 @@
  * new palette without per-page rewrites.
  */
 @theme {
-  /* Primary darks — basalt */
-  --color-basalt: #191917;
-  --color-basalt-2: #22221F;
-  --color-basalt-3: #34332F;
-  /* Stone neutrals */
-  --color-bone: #F3F0EA;
-  --color-bone-2: #E7E2D8;
-  --color-travertine: #D9CFBF;
-  --color-slate: #5E6266;
-  /* Accent — honed bronze */
-  --color-bronze: #A9814F;
-  --color-bronze-light: #C9A97A;
-  --color-bronze-pale: #EFE6D6;
+  /* StoneCraft palette (spec §1): graphite #25292B · limestone #EEE9E1 · champagne bronze #B89A70 ·
+     white #FFFFFF · sage-grey #77827C. Ink variants exist only to keep small text ≥ 4.5:1. */
+  --color-graphite: #25292B;
+  --color-limestone: #EEE9E1;
+  --color-champagne: #B89A70;
+  --color-sage-grey: #77827C;
+  --color-sage-ink: #5F6A64;      /* sage-grey for small text on limestone (4.7:1) */
 
-  /* Legacy aliases (do not remove — used across routes) */
-  --color-hunter: #191917;
-  --color-hunter-mid: #22221F;
-  --color-hunter-light: #34332F;
-  --color-linen: #C9A97A;
-  --color-linen-dark: #8C6A3F;
-  --color-linen-pale: #EFE6D6;
-  --color-cream: #F3F0EA;
-  --color-cream-dark: #E2DCD1;
-  --color-patina: #8C6A3F;
-  --color-amber: #C9A97A;
-  --color-sage: #A9A59C;
-  --color-mist: #CFCAC0;
+  --color-basalt: #25292B;        /* graphite */
+  --color-basalt-2: #2D3234;
+  --color-basalt-3: #3A4043;
+  --color-bone: #EEE9E1;          /* limestone */
+  --color-bone-2: #E4DED4;
+  --color-travertine: #D6CDBF;
+  --color-slate: #77827C;         /* sage-grey */
+  --color-bronze: #7D6340;        /* champagne-bronze ink for text on light (4.7:1) */
+  --color-bronze-light: #B89A70;  /* champagne bronze */
+  --color-bronze-pale: #F3EDE3;
+
+  /* Legacy aliases (kept so every route inherits the palette; no hunter-green remains) */
+  --color-hunter: #25292B;
+  --color-hunter-mid: #2D3234;
+  --color-hunter-light: #3A4043;
+  --color-linen: #B89A70;
+  --color-linen-dark: #7D6340;
+  --color-linen-pale: #F3EDE3;
+  --color-cream: #EEE9E1;
+  --color-cream-dark: #DDD5C9;
+  --color-patina: #7D6340;
+  --color-amber: #B89A70;
+  --color-sage: #77827C;
+  --color-mist: #CBD0CC;
 
   --font-serif: "Cormorant Garamond Variable", "Cormorant Garamond", Georgia, serif;
   --font-sans: "Manrope Variable", "Manrope", system-ui, sans-serif;
 
-  --shadow-premium: 0 24px 60px -24px rgba(25, 25, 23, 0.35);
-  --shadow-card: 0 1px 0 rgba(25, 25, 23, 0.06), 0 12px 32px -18px rgba(25, 25, 23, 0.25);
+  --shadow-premium: 0 24px 60px -24px rgba(37, 41, 43, 0.35);
+  --shadow-card: 0 1px 0 rgba(37, 41, 43, 0.06), 0 12px 32px -18px rgba(37, 41, 43, 0.25);
 }
 
 html { scroll-behavior: smooth; }
-body { background: var(--color-cream); color: var(--color-hunter); font-feature-settings: "ss01", "cv11"; }
+body { background-color: var(--color-limestone); color: var(--color-graphite); font-feature-settings: "ss01", "cv11"; }
 h1, h2, h3, .font-serif { font-feature-settings: "liga", "dlig"; letter-spacing: -0.01em; }
 .font-serif { font-weight: 500; }
+
+/* Fine stone grain over the whole page (very low alpha; never blocks input). */
+body::after { content: ""; position: fixed; inset: 0; z-index: 70; pointer-events: none; opacity: .55;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.15 0 0 0 0 0.16 0 0 0 0 0.17 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+@media print { body::after { display: none; } }
 
 *:focus-visible { outline: 2px solid var(--color-bronze); outline-offset: 3px; }
 ::selection { background: var(--color-bronze-pale); color: var(--color-basalt); }
@@ -71,17 +81,17 @@ h1, h2, h3, .font-serif { font-feature-settings: "liga", "dlig"; letter-spacing:
   transition: background-color .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease;
 }
 .btn-linen { background: var(--color-bronze-light); color: var(--color-basalt); border: 1px solid var(--color-bronze-light); }
-.btn-linen:hover { background: #d8bd93; border-color: #d8bd93; }
+.btn-linen:hover { background: #C7AC85; border-color: #C7AC85; }
 .btn-hunter { background: var(--color-basalt); color: var(--color-bone); border: 1px solid var(--color-basalt); }
 .btn-hunter:hover { background: var(--color-basalt-3); }
-.btn-ghost { border: 1px solid rgba(243, 240, 234, .55); color: #fff; }
+.btn-ghost { border: 1px solid rgba(238, 233, 225, .55); color: #fff; }
 .btn-ghost:hover { border-color: #fff; background: rgba(255,255,255,.06); }
 .btn-outline { border: 1px solid var(--color-basalt); color: var(--color-basalt); }
 .btn-outline:hover { background: var(--color-basalt); color: var(--color-bone); }
 
 .link-arrow { display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
 
-.field { display: block; width: 100%; border: 1px solid #cfc7b8; background: #fff; border-radius: 0; padding: .75rem .85rem; font-size: 1rem; }
+.field { display: block; width: 100%; border: 1px solid #CFC8BC; background: #fff; border-radius: 0; padding: .75rem .85rem; font-size: 1rem; }
 .field:focus { border-color: var(--color-basalt); outline: none; box-shadow: 0 0 0 3px var(--color-bronze-pale); }
 .label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: .4rem; letter-spacing: .01em; }
 
@@ -91,10 +101,17 @@ h1, h2, h3, .font-serif { font-feature-settings: "liga", "dlig"; letter-spacing:
 .prose-sc ul { list-style: disc; padding-left: 1.3rem; margin-bottom: 1rem; }
 .prose-sc li { margin-bottom: .35rem; line-height: 1.7; }
 
+/* Subtle stone textures */
+.stone-grain { position: relative; isolation: isolate; }
+.stone-grain::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.15 0 0 0 0 0.16 0 0 0 0 0.17 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.stone-vein { position: relative; isolation: isolate; }
+.stone-vein::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .07; background: url("/images/texture-marble-veined.webp") center/cover; mix-blend-mode: multiply; }
+
 /* Photo treatments */
-.photo-shade { background: linear-gradient(180deg, rgba(25,25,23,.15) 0%, rgba(25,25,23,.55) 55%, rgba(25,25,23,.88) 100%); }
-.photo-shade-side { background: linear-gradient(90deg, rgba(25,25,23,.92) 0%, rgba(25,25,23,.72) 45%, rgba(25,25,23,.2) 100%); }
-.stock-note { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: rgba(243,240,234,.7); }
+.photo-shade { background: linear-gradient(180deg, rgba(37,41,43,.15) 0%, rgba(37,41,43,.55) 55%, rgba(37,41,43,.88) 100%); }
+.photo-shade-side { background: linear-gradient(90deg, rgba(37,41,43,.92) 0%, rgba(37,41,43,.72) 45%, rgba(37,41,43,.2) 100%); }
+.stock-note { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: rgba(238,233,225,.75); }
 }
 
 /* Square, architectural corners: unlayered so it wins over utility classes. */

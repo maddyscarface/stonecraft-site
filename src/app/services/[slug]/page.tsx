@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { Checklist, Faq, FinalCta, Heading, JsonLd, PageHero, PriceGuide, Section } from "@/components/blocks";
 import { LeadForm } from "@/components/LeadForm";
 import { TrackView } from "@/components/TrackView";
-import { findService, services, publicPriceRanges } from "@/config/services";
+import { findService, services, publicPriceRanges, PRICE_RANGES_OWNER_REVIEWED } from "@/config/services";
 import { breadcrumbSchema, faqSchema, meta, serviceSchema } from "@/lib/seo";
 
 export const dynamicParams = false;
@@ -19,14 +19,14 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const s = findService((await params).slug);
   if (!s) notFound();
   const commercial = s.category === "commercial";
-  const range = s.priceRangeKey ? publicPriceRanges[s.priceRangeKey] : undefined;
+  const range = s.priceRangeKey && PRICE_RANGES_OWNER_REVIEWED ? publicPriceRanges[s.priceRangeKey] : undefined;
   return (
     <>
       <JsonLd data={serviceSchema({ name: s.name, description: s.intro, path: `/services/${s.slug}`, areaServed: ["Greater Boston, MA", "Palm Beach County, FL", "Broward County, FL"] })} />
       <JsonLd data={faqSchema(s.faq)} />
       <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Services", path: "/services/shower-restoration" }, { name: s.name, path: `/services/${s.slug}` }])} />
       <TrackView event="view_service" params={{ service: s.slug }} meta="ViewContent" />
-      <PageHero image={serviceImage[s.slug]} eyebrow="Service" title={s.h1} sub={s.short} primary={commercial ? { label: "Request a Commercial Site Assessment", href: "/commercial-site-assessment" } : { label: "Send Photos — Get a Free Assessment", href: "#get-started" }} secondary={commercial ? undefined : { label: "Commercial Property Services", href: "/commercial" }} />
+      <PageHero image={serviceImage[s.slug]} eyebrow="Service" title={s.h1} sub={s.short} primary={commercial ? { label: "Request a Commercial Site Assessment", href: "/commercial-site-assessment" } : { label: "Get a Photo Assessment", href: "#get-started" }} secondary={commercial ? undefined : { label: "Commercial Property Services", href: "/commercial" }} />
       <Section>
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr]">
           <div>
