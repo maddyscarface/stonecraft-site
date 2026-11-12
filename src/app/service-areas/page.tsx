@@ -9,7 +9,7 @@ export const metadata = meta({ title: "Service Areas — Greater Boston & Southe
 export default function Page() {
   return (
     <>
-      <PageHero eyebrow="Service areas" title="Where We Work" sub="We're a service-area business: we come to you. Appointments are grouped by area so our team spends time on your project, not in traffic." />
+      <PageHero image="boston-back-bay-brownstone" eyebrow="Service areas" title="Where We Work" sub="We're a service-area business: we come to you. Appointments are grouped by area so our team spends time on your project, not in traffic." />
       {markets.map((m) => (
         <Section key={m.id} tone={m.id === "boston" ? "cream" : "white"}>
           <Heading eyebrow={m.brandName} title={m.name} sub={m.status === "pre-launch" ? m.statusNote : m.serviceAreaLabel} />

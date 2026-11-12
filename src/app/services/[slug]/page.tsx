@@ -1,4 +1,5 @@
 import { PricingViewBeacon } from "@/components/estimate/PricingViewBeacon";
+import { serviceImage } from "@/config/photos";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Checklist, Faq, FinalCta, Heading, JsonLd, PageHero, PriceGuide, Section } from "@/components/blocks";
@@ -25,7 +26,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       <JsonLd data={faqSchema(s.faq)} />
       <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Services", path: "/services/shower-restoration" }, { name: s.name, path: `/services/${s.slug}` }])} />
       <TrackView event="view_service" params={{ service: s.slug }} meta="ViewContent" />
-      <PageHero eyebrow="Service" title={s.h1} sub={s.short} primary={commercial ? { label: "Request a Commercial Site Assessment", href: "/commercial-site-assessment" } : { label: "Send Photos — Get a Free Assessment", href: "#get-started" }} secondary={commercial ? undefined : { label: "Commercial Property Services", href: "/commercial" }} />
+      <PageHero image={serviceImage[s.slug]} eyebrow="Service" title={s.h1} sub={s.short} primary={commercial ? { label: "Request a Commercial Site Assessment", href: "/commercial-site-assessment" } : { label: "Send Photos — Get a Free Assessment", href: "#get-started" }} secondary={commercial ? undefined : { label: "Commercial Property Services", href: "/commercial" }} />
       <Section>
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr]">
           <div>
