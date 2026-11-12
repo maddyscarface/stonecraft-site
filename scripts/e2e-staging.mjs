@@ -34,7 +34,10 @@ const [resp] = await Promise.all([page.waitForResponse((r) => r.url().includes("
 const body = await resp.json().catch(() => ({}));
 ok("test lead accepted (POST /api/leads 200)", resp.status() === 200 && body.ok !== false, `${resp.status()} ${JSON.stringify(body).slice(0, 200)}`);
 await page.waitForURL(/thank-you/, { timeout: 20000 }); ok("redirected to /thank-you", true);
-const ev = await dl(); const leads = ev.filter((e) => e.event === "generate_lead");
+const ev = await dl();
+ok("assessment_start fired once", ev.filter((e) => e.event === "assessment_start").length === 1);
+ok("photos_received fired (count only)", ev.some((e) => e.event === "photos_received"));
+const leads = ev.filter((e) => e.event === "generate_lead");
 ok("exactly one generate_lead", leads.length === 1, JSON.stringify(leads));
 await page.reload({ waitUntil: "networkidle" });
 ok("no generate_lead on thank-you reload", !(await dl()).some((e) => e.event === "generate_lead"));
@@ -56,6 +59,26 @@ ok("admin revenue API blocked without token", [401, 403].includes((await fetch(B
 ok("admin quote API blocked without token", (await fetch(BASE + "/api/admin/quote", { method: "POST", body: "{}" })).status === 401);
 const html = await (await fetch(BASE + "/")).text();
 ok("no gtag/fbq loaded without IDs", !html.includes("googletagmanager.com/gtag/js") && !html.includes("connect.facebook.net"));
+// Build 04 spec checks
+await page.goto(BASE + "/", { waitUntil: "networkidle" });
+ok("hero headline per spec", (await page.locator("h1").first().innerText()).replace(/\s+/g, " ").trim() === "Restore the Surfaces You Love.");
+ok("hero supporting text per spec", (await page.locator("body").innerText()).includes("Tile, grout, shower and stone restoration for homes and properties in Greater Boston and Southeast Florida."));
+ok("hero CTAs per spec", (await page.getByTestId("hero-cta").innerText()).toLowerCase().includes("get a photo assessment") && (await page.getByTestId("hero-cta-commercial").innerText()).toLowerCase().includes("commercial property services"));
+ok("two journeys (residential + commercial)", (await page.getByTestId("journey-residential").count()) === 1 && (await page.getByTestId("journey-commercial").count()) === 1);
+ok("before/after slider has Illustrative badge", (await page.getByTestId("illustrative-badge").count()) >= 1);
+ok("no tel: links / placeholder phone", !(await page.content()).includes('href="tel:') && !(await page.content()).includes("000-0000"));
+await page.goto(BASE + "/free-assessment?type=renter", { waitUntil: "networkidle" });
+await page.getByTestId("firstName").fill("QA"); await page.getByTestId("email").fill("qa+renter@example.com"); await page.getByTestId("phone").fill("6175550198"); await page.getByTestId("zip").fill("02139");
+await page.getByTestId("next").click(); await page.waitForTimeout(300); await page.getByTestId("next").click(); await page.waitForTimeout(300);
+ok("renter blocked without authorised-approval acknowledgement", (await page.getByText("Please confirm before continuing").count()) >= 1 && (await page.getByTestId("approval-ack").count()) === 1);
+await page.goto(BASE + "/commercial-site-assessment", { waitUntil: "networkidle" });
+await page.getByTestId("organization").fill("QA Org"); await page.getByTestId("jobTitle").fill("Facilities"); await page.getByTestId("firstName").fill("QA"); await page.getByTestId("email").fill("qa+com@example.com"); await page.getByTestId("phone").fill("6175550197"); await page.getByTestId("zip").fill("02139");
+await page.getByTestId("next").click(); await page.waitForTimeout(300); await page.selectOption('[data-testid="segment"]', "hospitals");
+ok("hospital note shown, no compliance promise", /don.t claim compliance/i.test(await page.getByTestId("hospital-note").innerText()));
+const adm = await fetch(BASE + "/admin/pricing", { redirect: "manual" });
+ok("admin page redirects without session", [302, 303, 307, 308].includes(adm.status));
+const health = await (await fetch(BASE + "/api/health")).json();
+ok("health reports storage mode", typeof health.lead_intake === "string" && "production_override_ignored" in health, health.lead_intake);
 ok("no page errors", errs.length === 0, errs.join(" | ").slice(0, 300));
 await b.close();
 const f = res.filter((r) => !r.pass).length; console.log(`\n${res.length - f}/${res.length} passed`); process.exit(f ? 1 : 0);

@@ -1,0 +1,89 @@
+[
+ {
+  "id": "grout-joint",
+  "src": "/workspace/phase2/photo-cands/p40228980.jpg",
+  "box": [
+   0.1,
+   0.2,
+   0.9,
+   0.7
+  ],
+  "fx": {
+   "grout": 0.95,
+   "k": 11,
+   "mode": "dark",
+   "dull": 0.35,
+   "yellow": 0.12,
+   "scum": 0.3,
+   "seed": 3
+  }
+ },
+ {
+  "id": "shower",
+  "src": "bath-subway-grey.webp",
+  "box": [
+   0.25,
+   0.1,
+   0.75,
+   0.6
+  ],
+  "fx": {
+   "grout": 1.0,
+   "k": 11,
+   "mode": "light",
+   "dull": 0.5,
+   "yellow": 0.2,
+   "scum": 0.28,
+   "seed": 4
+  }
+ },
+ {
+  "id": "polished-stone",
+  "src": "texture-marble-white.webp",
+  "box": [
+   0.1,
+   0.1,
+   0.9,
+   0.7
+  ],
+  "fx": {
+   "dull": 0.65,
+   "yellow": 0.1,
+   "scum": 0.2,
+   "etch": 1.0,
+   "seed": 5
+  }
+ },
+ {
+  "id": "porcelain-floor",
+  "src": "hospital-corridor.webp",
+  "box": [
+   0.15,
+   0.55,
+   0.85,
+   1.0
+  ],
+  "fx": {
+   "grout": 0.9,
+   "k": 9,
+   "mode": "both",
+   "dull": 0.5,
+   "yellow": 0.2,
+   "scum": 0.35,
+   "seed": 7
+  }
+ },
+ {
+  "id": "commercial-hallway",
+  "src": "hotel-lobby.webp",
+  "fx": {
+   "dull": 0.5,
+   "yellow": 0.18,
+   "scum": 0.3,
+   "grout": 0.4,
+   "k": 7,
+   "mode": "dark",
+   "seed": 8
+  }
+ }
+]

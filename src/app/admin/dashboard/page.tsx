@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/auth";
+import { AdminStatus } from "@/components/admin/StatusBadge";
 import { listRange, kvConfigured } from "@/lib/store";
 import { markets } from "@/config/markets";
 
@@ -38,7 +39,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><h1 className="font-serif text-3xl">{ops ? "Operations" : "Executive"} dashboard</h1><p className="text-sm text-hunter/60">Last {days} days · {q.market ?? "all markets"} · storage: {kvConfigured ? "Upstash" : "in-memory (dev)"}</p></div>
+        <div><h1 className="font-serif text-3xl">{ops ? "Operations" : "Executive"} dashboard</h1><AdminStatus page="dashboard" /><p className="text-sm text-hunter/60">Last {days} days · {q.market ?? "all markets"} · storage: {kvConfigured ? "Upstash" : "in-memory (dev)"}</p></div>
         <form className="flex gap-2 text-sm"><input type="hidden" name="view" value={q.view ?? ""} />
           <select name="market" defaultValue={q.market ?? ""} className="field !w-auto !py-1.5"><option value="">All markets</option>{markets.map((m) => <option key={m.id} value={m.id}>{m.shortName}</option>)}</select>
           <select name="days" defaultValue={String(days)} className="field !w-auto !py-1.5">{[7, 30, 90, 365].map((d) => <option key={d} value={d}>{d} days</option>)}</select>
