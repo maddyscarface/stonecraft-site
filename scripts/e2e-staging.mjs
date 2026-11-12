@@ -1,0 +1,61 @@
+// Phase 2 smoke/e2e against a deployed URL (default: staging). Usage: BASE_URL=https://… node scripts/e2e-staging.mjs
+// Submits clearly-marked QA test leads (example.com addresses). Never point this at production.
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const { chromium } = require("playwright");
+const BASE = process.env.BASE_URL || "https://stonecraft-staging.vercel.app";
+const res = []; const ok = (n, c, d = "") => { res.push({ n, pass: !!c }); console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? " — " + d : ""}`); };
+const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
+await ctx.addInitScript(`try{localStorage.setItem("sc_consent_v1",JSON.stringify({analytics_storage:"granted",ad_storage:"granted",ad_user_data:"granted",ad_personalization:"granted"}))}catch(e){}`);
+const page = await ctx.newPage(); const errs = []; page.on("pageerror", (e) => errs.push(String(e)));
+const dl = () => page.evaluate(() => (window.dataLayer || []).filter((e) => e && e.event).map((e) => ({ event: e.event, event_id: e.event_id })));
+await page.goto(BASE + "/free-assessment?utm_source=google&utm_medium=cpc&utm_campaign=p2_staging_qa&gclid=QA_P2", { waitUntil: "networkidle" });
+await page.getByTestId("firstName").fill("QA Phase2"); await page.getByTestId("email").fill(`qa+p2${Date.now()}@example.com`); await page.getByTestId("phone").fill("6175550199"); await page.getByTestId("zip").fill("02139");
+await page.getByTestId("next").click(); await page.waitForTimeout(400);
+await page.getByText("Shower tile & grout").first().click();
+await page.getByTestId("next").click(); await page.waitForTimeout(400);
+ok("qualifier step shows (project type preselected)", (await page.getByTestId("q-project_type-shower").getAttribute("aria-pressed")) === "true");
+await page.getByTestId("q-size-alcove").click();
+ok("typical range shown", (await page.getByTestId("typical-range").innerText()).includes("$"));
+await page.getByTestId("q-budget-1_2k").click(); await page.getByTestId("q-start-2weeks").click();
+const d = new Date(Date.now() + 9 * 864e5); const date = d.toISOString().slice(0, 10);
+await page.fill('[data-testid="q-preferred_date"]', date); await page.selectOption('[data-testid="q-preferred_window"]', "1000");
+await page.getByTestId("q-favorites-bright_white").click().catch(() => {});
+await page.getByTestId("next").click(); await page.waitForTimeout(500);
+const jpg = Buffer.from("/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=", "base64");
+if (await page.locator('[data-testid="photo-input"]').count()) {
+  await page.setInputFiles('[data-testid="photo-input"]', { name: "shower.jpg", mimeType: "image/jpeg", buffer: jpg });
+  const up = await page.waitForSelector('img[alt="shower.jpg"]', { timeout: 15000 }).then(() => true).catch(() => false);
+  ok("photo upload step works", up);
+}
+await page.getByTestId("next").click(); await page.waitForTimeout(500);
+await page.getByTestId("contact-consent").check(); await page.waitForTimeout(3300);
+const [resp] = await Promise.all([page.waitForResponse((r) => r.url().includes("/api/leads")), page.getByTestId("submit").click()]);
+const body = await resp.json().catch(() => ({}));
+ok("test lead accepted (POST /api/leads 200)", resp.status() === 200 && body.ok !== false, `${resp.status()} ${JSON.stringify(body).slice(0, 200)}`);
+await page.waitForURL(/thank-you/, { timeout: 20000 }); ok("redirected to /thank-you", true);
+const ev = await dl(); const leads = ev.filter((e) => e.event === "generate_lead");
+ok("exactly one generate_lead", leads.length === 1, JSON.stringify(leads));
+await page.reload({ waitUntil: "networkidle" });
+ok("no generate_lead on thank-you reload", !(await dl()).some((e) => e.event === "generate_lead"));
+const attr = await page.evaluate(() => JSON.parse(localStorage.getItem("sc_attr_v1") || "{}"));
+ok("attribution persisted (utm + gclid + first touch)", attr.utm_campaign === "p2_staging_qa" && attr.gclid === "QA_P2" && !!(attr.first_touch_source || attr.first_touch_at || attr.landing_page), JSON.stringify(attr).slice(0, 300));
+// API-level checks
+const evId = `lead_p2qa_${Date.now()}`;
+const lead = { variant: "residential", firstName: "QA", email: `qa+api${Date.now()}@example.com`, phone: "6175550102", zip: "02143", contactConsent: true, eventId: evId, startedAt: Date.now() - 10000, attribution: { utm_source: "qa" } };
+const r1 = await fetch(BASE + "/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(lead) });
+const j1 = await r1.json(); ok("API test lead 200", r1.status === 200, JSON.stringify(j1).slice(0, 200));
+const r2 = await fetch(BASE + "/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(lead) });
+const j2 = await r2.json(); ok("duplicate submit handled (200, no error)", r2.status === 200, JSON.stringify(j2).slice(0, 160));
+const fl = await fetch(BASE + "/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...lead, eventId: `lead_p2fl_${Date.now()}`, email: `qa+fl${Date.now()}@example.com`, zip: "33432", phone: "5615550101" }) });
+ok("FL lead routed pre-launch", (await fl.json()).marketStatus === "pre-launch");
+const bad = await fetch(BASE + "/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ variant: "commercial", firstName: "x", email: "bad", phone: "1", zip: "1", contactConsent: true, eventId: "lead_bad_123456" }) });
+ok("invalid lead rejected 422", bad.status === 422);
+ok("intent webhook disabled by default (404)", (await fetch(BASE + "/api/intent/webhook", { method: "POST", body: "{}" })).status === 404);
+ok("admin revenue API blocked without token", [401, 403].includes((await fetch(BASE + "/api/admin/revenue")).status));
+ok("admin quote API blocked without token", (await fetch(BASE + "/api/admin/quote", { method: "POST", body: "{}" })).status === 401);
+const html = await (await fetch(BASE + "/")).text();
+ok("no gtag/fbq loaded without IDs", !html.includes("googletagmanager.com/gtag/js") && !html.includes("connect.facebook.net"));
+ok("no page errors", errs.length === 0, errs.join(" | ").slice(0, 300));
+await b.close();
+const f = res.filter((r) => !r.pass).length; console.log(`\n${res.length - f}/${res.length} passed`); process.exit(f ? 1 : 0);
