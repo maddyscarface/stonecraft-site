@@ -3,6 +3,9 @@ import { site } from "@/config/site";
 import type { Market } from "@/config/markets";
 import type { FAQ } from "@/config/services";
 
+/** True on staging/preview deployments: every page is noindex and robots.txt blocks all. */
+export const isNoindexEnv = () => process.env.SITE_NOINDEX === "true" || process.env.VERCEL_ENV === "preview";
+
 export const abs = (path: string) => `${site.primaryDomain.replace(/\/$/, "")}${path}`;
 
 export function meta(opts: { title: string; description: string; path: string; noindex?: boolean }): Metadata {
@@ -10,7 +13,7 @@ export function meta(opts: { title: string; description: string; path: string; n
     title: opts.title,
     description: opts.description,
     alternates: { canonical: abs(opts.path) },
-    robots: opts.noindex ? { index: false, follow: true } : undefined,
+    robots: isNoindexEnv() ? { index: false, follow: false } : opts.noindex ? { index: false, follow: true } : undefined,
     openGraph: { title: opts.title, description: opts.description, url: abs(opts.path), type: "website", siteName: "StoneCraft", images: [{ url: abs("/og.png"), width: 1200, height: 630 }] },
     twitter: { card: "summary_large_image", title: opts.title, description: opts.description },
   };
@@ -28,7 +31,7 @@ export function businessSchema(m: Market, cityNames: string[]) {
     "@id": abs(`/${m.slug}#business`),
     name: m.brandName,
     url: abs(`/${m.slug}`),
-    telephone: m.phoneE164,
+    ...(m.phoneE164 ? { telephone: m.phoneE164 } : {}),
     email: m.email,
     description: site.supporting,
     areaServed: cityNames.map((name) => ({ "@type": "City", name: `${name}, ${m.state}` })),

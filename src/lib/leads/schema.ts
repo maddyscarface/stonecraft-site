@@ -8,6 +8,8 @@ export const attributionSchema = z.object({
   gclid: optText(300), gbraid: optText(300), wbraid: optText(300), fbclid: optText(500), msclkid: optText(300),
   fbc: optText(500), fbp: optText(200),
   landing_page: optText(500), referrer: optText(500), first_seen: optText(40), last_touch_source: optText(120),
+  last_touch_medium: optText(120), last_touch_campaign: optText(200), last_touch_at: optText(40),
+  first_touch_source: optText(120), first_touch_medium: optText(120), first_touch_campaign: optText(200), first_touch_at: optText(40),
   openai_obref: optText(300), openai_oppref: optText(300),
 }).partial();
 
