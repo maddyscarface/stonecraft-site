@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdmin } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 import { kvGet, kvSet } from "@/lib/store";
 import { draftPriceSheets } from "@/config/pricing";
 import { defaultScoring } from "@/lib/leads/scoring";
@@ -10,6 +11,7 @@ const defaults: Record<K, unknown> = { scoring: defaultScoring, "pricing:boston"
 
 export async function GET(req: NextRequest) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorised" }, { status: 401 });
+  await audit("admin.config.get");
   const k = req.nextUrl.searchParams.get("key") as K;
   if (!KEYS[k]) return NextResponse.json({ error: "unknown key" }, { status: 400 });
   return NextResponse.json({ key: k, value: (await kvGet(KEYS[k])) ?? defaults[k], overridden: !!(await kvGet(KEYS[k])) });
@@ -17,6 +19,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorised" }, { status: 401 });
+  await audit("admin.config.put");
   const { key, value } = (await req.json()) as { key: K; value: unknown };
   if (!KEYS[key] || typeof value !== "object" || !value) return NextResponse.json({ error: "invalid" }, { status: 400 });
   await kvSet(KEYS[key], value);

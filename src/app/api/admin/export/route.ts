@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdmin } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 import { listRange } from "@/lib/store";
 
 /** Google Ads offline conversion import CSV (Upload → "Conversions from clicks"). */
 export async function GET(req: NextRequest) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorised" }, { status: 401 });
+  await audit("admin.export.get");
   const market = req.nextUrl.searchParams.get("market");
   const rows = (await listRange<{ gclid: string; conversion: string; time: string; value: number; market?: string }>("gads_offline", 0, 4999)).filter((r) => !market || r.market === market);
   const tz = "America/New_York";
