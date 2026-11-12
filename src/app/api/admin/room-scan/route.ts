@@ -6,6 +6,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { isAdmin } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 const Body = z.object({ frames: z.array(z.string().regex(/^data:image\/jpeg;base64,/)).min(2).max(6), reference: z.object({ label: z.string(), inches: z.number().positive() }).optional(), notes: z.string().max(500).optional() });
@@ -13,6 +14,7 @@ const Out = z.object({ floor_sqft: z.number().nonnegative().nullable(), wall_til
 
 export async function POST(req: NextRequest) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorised" }, { status: 401 });
+  await audit("admin.room-scan.post");
   if (process.env.ROOM_SCAN_ENABLED !== "true" || !process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "Room scan beta is not enabled" }, { status: 503 });
   const p = Body.safeParse(await req.json().catch(() => null));
   if (!p.success) return NextResponse.json({ error: "Send 2–6 JPEG frames" }, { status: 400 });

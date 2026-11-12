@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdmin } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 import { kvGet } from "@/lib/store";
 import { draftPriceSheets } from "@/config/pricing";
 import { buildQuote, customerView, type QuoteLineInput } from "@/lib/pricing/engine";
@@ -7,6 +8,7 @@ import type { PriceSheet } from "@/lib/pricing/types";
 
 export async function POST(req: NextRequest) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorised" }, { status: 401 });
+  await audit("admin.quote.post");
   const b = (await req.json()) as { market: string; zip?: string; customerType?: string; isHnw?: boolean; lines: QuoteLineInput[] };
   const sheet = (await kvGet<PriceSheet>(`cfg:pricing:${b.market}`)) ?? draftPriceSheets.find((s) => s.marketId === b.market);
   if (!sheet) return NextResponse.json({ error: "no price sheet" }, { status: 400 });

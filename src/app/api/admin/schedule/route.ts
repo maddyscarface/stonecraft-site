@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdmin } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 import { markets } from "@/config/markets";
 import { cityByZip } from "@/config/cities";
 import { checkBooking, detectZone, localParts, priorityReasons, suggestSlots } from "@/lib/scheduling/engine";
@@ -12,6 +13,7 @@ const apptKey = (m: string) => `appts:${m}`;
 
 export async function POST(req: NextRequest) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorised" }, { status: 401 });
+  await audit("admin.schedule.post");
   const b = (await req.json()) as { action: "suggest" | "book" | "list"; zip?: string; town?: string; estimatedValue?: number; customerType?: string; isHnw?: boolean; isUrgent?: boolean; booking?: Omit<Appointment, "id" | "status">; market?: string };
   const m = b.zip ? marketForZip(b.zip) : markets.find((x) => x.id === b.market);
   if (!m) return NextResponse.json({ error: "ZIP not in a configured market" }, { status: 400 });
