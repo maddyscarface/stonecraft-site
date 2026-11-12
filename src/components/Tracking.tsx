@@ -4,9 +4,12 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { captureAttribution, currentConsent, defaultConsent, getConsent, push, setConsent } from "@/lib/tracking/client";
 import { OPENAI_PIXEL_ID, oaiqSnippet } from "@/lib/openai-ads/client";
+import { gtagDirectIds, tracking } from "@/config/tracking";
+import { IntentPixel } from "./IntentPixel";
 
-const GTM = process.env.NEXT_PUBLIC_GTM_ID;
-const PIXEL = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+const GTM = tracking.gtm;
+const PIXEL = tracking.metaPixel;
+const GTAG_IDS = gtagDirectIds();
 
 export function Tracking() {
   const pathname = usePathname();
@@ -34,6 +37,14 @@ export function Tracking() {
       {GTM && (
         <Script id="gtm" strategy="afterInteractive">{`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${GTM}');`}</Script>
       )}
+      {GTAG_IDS.length > 0 && (
+        <>
+          {/* Direct gtag.js for GA4 / Google Ads when no GTM container is configured. Consent defaults above apply. */}
+          <Script id="gtag-src" strategy="afterInteractive" src={`https://www.googletagmanager.com/gtag/js?id=${GTAG_IDS[0]}`} />
+          <Script id="gtag-config" strategy="afterInteractive">{`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=window.gtag||gtag;gtag('js',new Date());${GTAG_IDS.map((id) => `gtag('config','${id}'${id.startsWith("AW-") ? ",{allow_enhanced_conversions:true}" : ""});`).join("")}`}</Script>
+        </>
+      )}
+      <IntentPixel />
       {PIXEL && (
         <Script id="meta-pixel" strategy="afterInteractive">{`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
           var c=null;try{c=JSON.parse(localStorage.getItem('sc_consent_v1'));}catch(e){}

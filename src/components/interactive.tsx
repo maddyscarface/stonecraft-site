@@ -8,12 +8,12 @@ import { track } from "@/lib/tracking/client";
 /* ───────── Before / after slider ───────── */
 
 function TilePattern({ dirty }: { dirty: boolean }) {
-  const grout = dirty ? "#6b6250" : "#ece7dc";
-  const tile = dirty ? "#cfc6b3" : "#f7f5f0";
+  const grout = dirty ? "#57514a" : "#e6e1d8";
+  const tile = dirty ? "#d2cabc" : "#f7f5f0";
   const cells = [];
   for (let y = 0; y < 6; y++) for (let x = 0; x < 8; x++) {
     const stain = dirty && (x * 7 + y * 3) % 5 === 0;
-    cells.push(<rect key={`${x}-${y}`} x={x * 50 + 2} y={y * 50 + 2} width={46} height={46} rx={2} fill={stain ? "#bfb49b" : tile} />);
+    cells.push(<rect key={`${x}-${y}`} x={x * 50 + 2} y={y * 50 + 2} width={46} height={46} rx={2} fill={stain ? "#bdb3a2" : tile} />);
   }
   return (
     <svg viewBox="0 0 400 300" className="h-full w-full" preserveAspectRatio="xMidYMid slice" aria-hidden>
@@ -85,14 +85,14 @@ const AUDIENCES = [
 
 export function AudienceSelector() {
   return (
-    <div className="bg-cream py-10">
-      <div className="container-sc">
-        <p className="mb-4 text-center font-serif text-2xl">I need restoration for:</p>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+    <div className="border-b border-cream-dark bg-cream">
+      <div className="container-sc flex flex-col gap-5 py-8 lg:flex-row lg:items-center lg:gap-10">
+        <p className="shrink-0 font-serif text-[26px] leading-none text-basalt">I need restoration for</p>
+        <div className="grid flex-1 grid-cols-2 gap-px bg-cream-dark md:grid-cols-5">
           {AUDIENCES.map(({ id, label, href, Icon }) => (
             <Link key={id} href={href} onClick={() => track("audience_select", { audience: id })}
-              className="flex flex-col items-center gap-2 rounded-lg border border-cream-dark bg-white p-5 text-center font-semibold shadow-card transition hover:-translate-y-0.5 hover:border-hunter">
-              <Icon className="text-patina" />{label}
+              className="group flex items-center gap-3 bg-cream px-4 py-4 text-[13px] font-semibold text-basalt transition hover:bg-basalt hover:text-bone">
+              <Icon size={18} strokeWidth={1.5} className="shrink-0 text-bronze transition group-hover:text-bronze-light" />{label}
             </Link>
           ))}
         </div>
@@ -136,15 +136,15 @@ export function ServiceSelector() {
   const [problem, setProblem] = useState<string | null>(null);
   const result = surface && problem ? PROBLEMS[surface].find((p) => p.id === problem) : null;
   return (
-    <div className="rounded-lg bg-white p-6 shadow-card md:p-8">
-      <p className="text-sm font-semibold text-patina">1. What surface?</p>
-      <div className="mt-2 flex flex-wrap gap-2">{SURFACES.map((s) => <button key={s.id} type="button" aria-pressed={surface === s.id} onClick={() => { setSurface(s.id); setProblem(null); }} className={`rounded-full border px-4 py-2 text-sm ${surface === s.id ? "border-hunter bg-hunter text-white" : "border-hunter/30 hover:border-hunter"}`}>{s.label}</button>)}</div>
+    <div className="bg-white p-6 shadow-card md:p-9">
+      <p className="eyebrow text-bronze">1. What surface?</p>
+      <div className="mt-2 flex flex-wrap gap-2">{SURFACES.map((s) => <button key={s.id} type="button" aria-pressed={surface === s.id} onClick={() => { setSurface(s.id); setProblem(null); }} className={`mt-1 border px-4 py-2.5 text-sm ${surface === s.id ? "border-basalt bg-basalt text-bone" : "border-basalt/20 hover:border-basalt"}`}>{s.label}</button>)}</div>
       {surface && <>
-        <p className="mt-5 text-sm font-semibold text-patina">2. What's the problem?</p>
-        <div className="mt-2 flex flex-wrap gap-2">{PROBLEMS[surface].map((p) => <button key={p.id} type="button" aria-pressed={problem === p.id} onClick={() => { setProblem(p.id); track("service_selector", { surface, problem: p.id }); }} className={`rounded-full border px-4 py-2 text-sm ${problem === p.id ? "border-hunter bg-hunter text-white" : "border-hunter/30 hover:border-hunter"}`}>{p.label}</button>)}</div>
+        <p className="eyebrow mt-7 text-bronze">2. What's the problem?</p>
+        <div className="mt-2 flex flex-wrap gap-2">{PROBLEMS[surface].map((p) => <button key={p.id} type="button" aria-pressed={problem === p.id} onClick={() => { setProblem(p.id); track("service_selector", { surface, problem: p.id }); }} className={`mt-1 border px-4 py-2.5 text-sm ${problem === p.id ? "border-basalt bg-basalt text-bone" : "border-basalt/20 hover:border-basalt"}`}>{p.label}</button>)}</div>
       </>}
       {result && (
-        <div className="mt-6 rounded border-l-4 border-linen bg-cream p-4" aria-live="polite">
+        <div className="mt-7 border-l-2 border-bronze bg-cream p-5" aria-live="polite">
           <p className="text-sm">{result.why}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {result.service && <Link className="btn btn-outline !min-h-10 text-sm" href={`/services/${result.service}`}>About this service</Link>}
