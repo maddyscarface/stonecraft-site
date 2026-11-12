@@ -10,7 +10,7 @@ export default function Page() {
   const items = publishableGallery();
   return (
     <>
-      <PageHero eyebrow="Gallery" title="The Work Speaks for Itself" sub="Every project shown here is a real StoneCraft job, published with the customer's written permission." />
+      <PageHero eyebrow="Gallery" title={items.length ? "The Work Speaks for Itself" : "Before & After Gallery"} sub="We publish only real StoneCraft jobs, with the customer's written permission — never stock photos or another company's work." />
       <Section>
         {items.length ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{items.map((g) => <figure key={g.id}><BeforeAfter before={g.before} after={g.after} alt={g.alt} /><figcaption className="mt-2 flex gap-2 text-xs">{g.permission.allowsTown && <span className="rounded bg-linen px-2 py-0.5">{g.town}</span>}<span className="rounded bg-patina px-2 py-0.5 text-white">{g.service}</span></figcaption>{g.caption && <p className="mt-1 text-sm italic">{g.caption}</p>}</figure>)}</div>
@@ -22,7 +22,7 @@ export default function Page() {
           </div>
         )}
       </Section>
-      <FinalCta title="Want results like these?" />
+      <FinalCta title={items.length ? "Want results like these?" : "See what's possible for your surfaces"} />
     </>
   );
 }

@@ -11,7 +11,7 @@ export default function Page() {
   return (
     <>
       <JsonLd data={faqSchema(FAQ)} />
-      <PageHero eyebrow="Process" title="Simple. Documented. No pressure." sub="Every project follows the same path, whether it's one shower or forty restrooms." />
+      <PageHero image="tile-scrub-cleaning" eyebrow="Process" title="Simple. Documented. No pressure." sub="Every project follows the same path, whether it's one shower or forty restrooms." />
       <Section><ProcessSteps /></Section>
       <Section tone="white"><div className="grid gap-8 md:grid-cols-2">
         <div><Heading eyebrow="Residential" title="Homes and rentals" /><ol className="list-decimal space-y-2 pl-5"><li>Photo assessment (or short visit)</li><li>Written scope, price and cure times</li><li>Landlord approval on file (renters)</li><li>Scheduled visit on your area's service day</li><li>Before photos, restoration, after photos</li><li>Walkthrough and care instructions</li></ol></div>
