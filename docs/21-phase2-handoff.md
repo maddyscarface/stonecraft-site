@@ -19,7 +19,7 @@ was not touched.
 ## Integrations: all inactive until the env vars are set
 | Area | Behaviour without env | Activate with |
 |---|---|---|
-| GoHighLevel | Logs `[ghl:dry-run]` with the tags, pipeline/stage and follow-up plan; lead still stored | `GHL_PRIVATE_TOKEN`, `GHL_LOCATION_ID_BOSTON` / `_FL`, `GHL_<MKT>_PIPELINE_*`, `GHL_<MKT>_STAGE_*`, `GHL_CUSTOM_FIELD_IDS` |
+| GoHighLevel | Logs `[ghl:dry-run]` with the tags, pipeline/stage and follow-up plan; lead still stored | `GHL_PRIVATE_TOKEN`, `GHL_LOCATION_ID_BOSTON` / `_FL`, `GHL_<MKT>_PIPELINE_RESIDENTIAL/_COMMERCIAL`, `GHL_<MKT>_STAGE_<RES|COM>_<STAGE>` (full list in `.env.example`), `GHL_<MKT>_TEAM_USER_ID`, `GHL_<MKT>_CALENDAR_RESIDENTIAL/_COMMERCIAL`, `GHL_CUSTOM_FIELD_IDS` |
 | Follow-up hooks | Planned only (returned in dry-run log) | `GHL_<BOSTON\|FL>_WORKFLOW_<HOOK>` (workflow IDs built inside GHL) |
 | GTM / GA4 / Google Ads tag | Nothing loads | `NEXT_PUBLIC_GTM_ID`, or direct gtag `NEXT_PUBLIC_GA4_ID`, `NEXT_PUBLIC_GOOGLE_ADS_ID`, `NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL` |
 | GA4 server (MP) | Off | `GA4_MEASUREMENT_ID`, `GA4_API_SECRET` |
