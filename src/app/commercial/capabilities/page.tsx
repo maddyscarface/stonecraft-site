@@ -23,7 +23,7 @@ export default function Page() {
             <aside className="space-y-6 text-sm">
               <section className="rounded bg-cream p-4"><h3 className="font-semibold">Sectors</h3><ul className="mt-2 space-y-1">{capabilities.sectors.map((s) => <li key={s}>{s}</li>)}</ul></section>
               <section className="rounded bg-cream p-4"><h3 className="font-semibold">Company data</h3><dl className="mt-2 space-y-1">{capabilities.companyData.map(([k, v]) => <div key={k}><dt className="text-xs text-hunter/60">{k}</dt><dd>{v}</dd></div>)}</dl></section>
-              <section className="rounded bg-cream p-4"><h3 className="font-semibold">Contact</h3>{markets.map((m) => <p key={m.id} className="mt-2"><strong>{m.brandName}</strong><br />{m.phoneDisplay}<br />{m.email}</p>)}</section>
+              <section className="rounded bg-cream p-4"><h3 className="font-semibold">Contact</h3>{markets.map((m) => <p key={m.id} className="mt-2"><strong>{m.brandName}</strong><br />{m.phoneDisplay && <>{m.phoneDisplay}<br /></>}{m.email}</p>)}</section>
             </aside>
           </div>
         </article>

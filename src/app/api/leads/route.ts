@@ -11,6 +11,7 @@ import { readUrls, validKeyForEvent } from "@/lib/photos";
 import { sendOpenAiEvent } from "@/lib/openai-ads/server";
 import { budgetFit, qualifierScore, sanitizeQualifiers } from "@/lib/estimate/qualifiers";
 import { estimateConfig } from "@/config/estimate";
+import { attributionSnapshot } from "@/lib/attribution/revenue";
 
 export const runtime = "nodejs";
 
@@ -26,10 +27,10 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
   if (memoryStoreBlocked()) {
     console.error("[lead] Upstash not configured in production — refusing to keep leads in memory");
-    return NextResponse.json({ error: "Our form is temporarily unavailable. Please call or text us." }, { status: 503 });
+    return NextResponse.json({ error: "Our form is temporarily unavailable. Please email info@stonecraftpros.com." }, { status: 503 });
   }
   const rl = await rateLimit(`lead:${ip}`, 8, 600);
-  if (!rl.ok) return NextResponse.json({ error: "Too many submissions. Please call or text us." }, { status: 429 });
+  if (!rl.ok) return NextResponse.json({ error: "Too many submissions. Please email info@stonecraftpros.com." }, { status: 429 });
 
   const raw = await req.text();
   if (raw.length > 64_000) return NextResponse.json({ error: "Request too large" }, { status: 413 });
@@ -110,6 +111,12 @@ export async function POST(req: NextRequest) {
     budget: q?.budget, budgetFit: q ? budgetFit(estimateConfig, q).fit : undefined, visit: q?.preferred_date,
   };
   await listPush("leads", record);
+  // Revenue attribution: remember first/last touch for this contact so a later won/paid CRM stage
+  // can be credited to the right source (kept 400 days; first lead wins for first-touch).
+  const attrKey = `attr:${externalContactId(lead.email, lead.phone)}`;
+  const snap = attributionSnapshot(lead.attribution as Record<string, string | undefined>, lead.eventId, routing.marketId);
+  const prevSnap = await kvGet<ReturnType<typeof attributionSnapshot>>(attrKey);
+  await kvSet(attrKey, prevSnap ? { ...snap, first: prevSnap.first, leadEventId: prevSnap.leadEventId } : snap, 60 * 60 * 24 * 400);
 
   // Delivery guarantee: if neither CRM nor email succeeded, queue for manual retry and alert via log.
   const ghlOk = ghl.status === "fulfilled" && (ghl.value.mode === "dry-run" || !ghl.value.error);

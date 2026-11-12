@@ -17,7 +17,7 @@ export default function Page() {
     <>
       <JsonLd data={serviceSchema({ name: "Bathroom Refresh", description: "Fixed-scope bathroom tile, grout, shower and caulk restoration.", path: "/bathroom-refresh", areaServed: ["Greater Boston, MA", "Southeast Florida"] })} />
       <JsonLd data={faqSchema(FAQ)} />
-      <PageHero eyebrow="The Bathroom Refresh" title="Restore the Bathroom. Keep the Tile. Refresh the Space." sub="A 1–2 day refresh of tile, grout, shower and caulk for bathrooms that are sound but tired. Fixed scope, written price." primary={{ label: "Send Photos — Get a Free Assessment", href: "#get-started" }} secondary={{ label: "Renting? See how approval works", href: "/renters" }} />
+      <PageHero image="bath-subway-grey" eyebrow="The Bathroom Refresh" title="Restore the Bathroom. Keep the Tile. Refresh the Space." sub="A 1–2 day refresh of tile, grout, shower and caulk for bathrooms that are sound but tired. Fixed scope, written price." primary={{ label: "Send Photos — Get a Free Assessment", href: "#get-started" }} secondary={{ label: "Renting? See how approval works", href: "/renters" }} />
       <Section>
         <div className="grid gap-10 md:grid-cols-2">
           <div><Heading eyebrow="Included" title="What the refresh covers" /><Checklist items={["Deep clean of shower/tub tile and grout", "Grout colour or clear sealing", "Caulk removal and replacement at wet joints", "Spot grout repair where needed", "Bathroom floor tile and grout cleaning", "Care instructions and before/after photos"]} /></div>
