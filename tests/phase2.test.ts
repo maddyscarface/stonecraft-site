@@ -86,9 +86,13 @@ describe("revenue attribution", () => {
   it("summarises revenue by model", () => {
     const mk = (v: number, first: string, last: string): RevenueRecord => ({ eventId: String(v), stage: "won", value: v, currency: "USD", at: new Date().toISOString(), attribution: { first: { source: first }, last: { source: last }, clickIds: {}, leadEventId: "x", leadAt: "" } });
     const recs = [mk(1000, "meta", "google"), mk(500, "google", "google"), { ...mk(200, "", ""), attribution: null }];
-    expect(summarizeRevenue(recs, "last").rows[0]).toMatchObject({ source: "google", revenue: 1500, deals: 2 });
-    expect(summarizeRevenue(recs, "first").rows.map((r) => r.source)).toEqual(["meta", "google", "unattributed"]);
-    expect(summarizeRevenue(recs).total).toBe(1700);
+    expect(summarizeRevenue(recs, "last", "won").rows[0]).toMatchObject({ source: "google", revenue: 1500, deals: 2 });
+    expect(summarizeRevenue(recs, "first", "won").rows.map((r) => r.source)).toEqual(["meta", "google", "unattributed"]);
+    expect(summarizeRevenue(recs, "last", "won").total).toBe(1700);
+    // completed_revenue is reported separately so a won job isn't double-counted when it completes
+    const done = [{ ...mk(900, "meta", "google"), event: "completed_revenue" }, { ...mk(1000, "meta", "google"), event: "job_won" }];
+    expect(summarizeRevenue(done).total).toBe(900);
+    expect(summarizeRevenue(done, "last", "won").total).toBe(1000);
   });
   it("builds Google Ads click conversions and stays off without credentials", () => {
     expect(googleAdsConfigured()).toBe(false);

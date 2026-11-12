@@ -147,7 +147,7 @@ const baseLead = { firstName: "Ana", email: "ANA@Example.com ", phone: "(617) 55
 
 describe("leads", () => {
   it("validates and strips landlord details without consent", () => {
-    const r = parseLead({ ...baseLead, variant: "renter", roommates: 3, landlordOutreachConsent: false, landlordName: "Bob", landlordContact: "bob@x.com" });
+    const r = parseLead({ ...baseLead, variant: "renter", roommates: 3, approvalAcknowledged: true, landlordOutreachConsent: false, landlordName: "Bob", landlordContact: "bob@x.com" });
     expect(r.success).toBe(true);
     if (r.success && r.data.variant === "renter") { expect(r.data.landlordName).toBeUndefined(); expect(r.data.email).toBe("ana@example.com"); }
   });
@@ -180,7 +180,7 @@ describe("crm + tracking", () => {
   it("dedupe keys are stable across formatting", () => {
     expect(externalContactId("A@b.com ", "")).toBe(externalContactId("a@b.com"));
     expect(opportunityKey("x", "residential")).toBe("x:residential");
-    expect(entryStage("residential", true)).toBe("Photos Received");
+    expect(entryStage("residential", true)).toBe("Photos received");
   });
   it("builds GHL payload with attribution custom fields", () => {
     const r = parseLead({ ...baseLead, variant: "residential", photoKeys: ["p/1.jpg"] });
