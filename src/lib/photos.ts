@@ -10,7 +10,8 @@ const SUPA = process.env.SUPABASE_URL?.replace(/\/$/, "");
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET = process.env.SUPABASE_PHOTO_BUCKET ?? "assessment-photos";
 export const supabaseConfigured = Boolean(SUPA && KEY);
-export const localUploadsAllowed = () => !supabaseConfigured && (process.env.NODE_ENV !== "production" || process.env.ALLOW_LOCAL_UPLOADS === "true");
+/** ALLOW_LOCAL_UPLOADS is honoured on preview/sandbox only, never on VERCEL_ENV=production (Build 04 §5). */
+export const localUploadsAllowed = () => !supabaseConfigured && (process.env.NODE_ENV !== "production" || (process.env.ALLOW_LOCAL_UPLOADS === "true" && process.env.VERCEL_ENV !== "production"));
 
 export const ALLOWED_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/heic": "heic", "image/heif": "heif" };
 export const MAX_BYTES = 20 * 1024 * 1024;

@@ -9,10 +9,20 @@ const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 export const kvConfigured = Boolean(url && token);
 /**
  * Production guard: never keep leads in process memory on a live site (lost on every serverless
- * recycle, not shared between instances). Set LEAD_ALLOW_MEMORY_STORE=1 only for local/sandbox tests.
+ * recycle, not shared between instances). LEAD_ALLOW_MEMORY_STORE=1 is an escape hatch for local,
+ * sandbox and *preview* deployments only. It is deliberately ignored when VERCEL_ENV=production so
+ * the guard can't be masked by an env flag (Build 04 §5): production must have durable storage
+ * (Upstash) or lead intake reports "blocked" and returns 503.
  */
-export const memoryStoreBlocked = () =>
-  process.env.NODE_ENV === "production" && !kvConfigured && process.env.LEAD_ALLOW_MEMORY_STORE !== "1";
+export const isProductionDeploy = (env: Record<string, string | undefined> = process.env) => env.VERCEL_ENV === "production";
+export function memoryStoreBlockedFor(env: Record<string, string | undefined>, kv: boolean) {
+  if (kv || env.NODE_ENV !== "production") return false;
+  if (isProductionDeploy(env)) return true;
+  return env.LEAD_ALLOW_MEMORY_STORE !== "1";
+}
+export const memoryStoreBlocked = () => memoryStoreBlockedFor(process.env, kvConfigured);
+/** True when a memory escape hatch is set on production but ignored (surfaced on /api/health). */
+export const productionOverrideIgnored = () => isProductionDeploy() && (process.env.LEAD_ALLOW_MEMORY_STORE === "1" || process.env.ALLOW_LOCAL_UPLOADS === "true");
 
 const mem = globalThis as unknown as { __scMem?: Map<string, { v: string; exp?: number }>; __scLists?: Map<string, string[]> };
 mem.__scMem ??= new Map();

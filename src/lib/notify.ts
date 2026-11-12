@@ -49,11 +49,11 @@ export async function notifyOwner(lead: LeadInput, routing: Routing, score: Scor
     return send(to, b.subject, b.html, lead.email, b.text);
   }
   const rows = Object.entries(lead).filter(([k, v]) => !["attribution", "photoKeys", "eventId", "website", "startedAt", "turnstileToken"].includes(k) && v !== undefined && v !== "")
-    .map(([k, v]) => `<tr><td style="padding:4px 8px;color:#4A7060">${esc(k)}</td><td style="padding:4px 8px">${esc(Array.isArray(v) ? v.join(", ") : v)}</td></tr>`).join("");
-  const html = `<div style="font-family:Inter,Arial,sans-serif;color:#1A3828"><h2 style="font-family:Georgia,serif">New ${esc(lead.variant)} lead — ${esc(routing.city ?? lead.zip)} (${esc(score.tier)}, ${score.score})</h2>
+    .map(([k, v]) => `<tr><td style="padding:4px 8px;color:#77827C">${esc(k)}</td><td style="padding:4px 8px">${esc(Array.isArray(v) ? v.join(", ") : v)}</td></tr>`).join("");
+  const html = `<div style="font-family:Inter,Arial,sans-serif;color:#25292B"><h2 style="font-family:Georgia,serif">New ${esc(lead.variant)} lead — ${esc(routing.city ?? lead.zip)} (${esc(score.tier)}, ${score.score})</h2>
   <p>Market: ${esc(routing.market?.name ?? "Unknown")} · Zone: ${esc(routing.zoneName ?? "none")} · Pipeline: ${esc(routing.pipeline)}${routing.marketStatus === "pre-launch" ? " · <b>PRE-LAUNCH MARKET</b>" : ""}</p>
   <table>${rows}</table><p>${photoUrls.map((u, i) => `<a href="${esc(u)}">Photo ${i + 1}</a>`).join(" · ") || "No photos"}</p>
-  <p style="color:#4A7060">Source: ${esc(lead.attribution.utm_source ?? "direct")} / ${esc(lead.attribution.utm_medium ?? "")} / ${esc(lead.attribution.utm_campaign ?? "")}</p></div>`;
+  <p style="color:#77827C">Source: ${esc(lead.attribution.utm_source ?? "direct")} / ${esc(lead.attribution.utm_medium ?? "")} / ${esc(lead.attribution.utm_campaign ?? "")}</p></div>`;
   return send(to, `New lead: ${lead.firstName} in ${routing.city ?? lead.zip} — ${lead.variant}`, html, lead.email);
 }
 
@@ -61,8 +61,8 @@ export async function autoReply(lead: LeadInput, routing: Routing) {
   const brand = routing.market?.brandName ?? site.brand;
   const photos = lead.photoKeys.length;
   const renterLine = lead.variant === "renter" ? `<p>Reminder: we'll need written approval from your landlord or property manager before any work is booked. ${lead.landlordOutreachConsent ? "You've authorised us to contact them—we'll confirm with you before we do." : "Our approval template is at " + esc(site.primaryDomain) + "/renters/landlord-approval."}</p>` : "";
-  const html = `<div style="font-family:Inter,Arial,sans-serif;color:#1A3828;max-width:560px">
-  <div style="background:#1A3828;color:#D4B896;padding:16px 20px;font-family:Georgia,serif;font-size:20px">${esc(brand)}</div>
+  const html = `<div style="font-family:Inter,Arial,sans-serif;color:#25292B;max-width:560px">
+  <div style="background:#25292B;color:#B89A70;padding:16px 20px;font-family:Georgia,serif;font-size:20px">${esc(brand)}</div>
   <div style="padding:20px"><p>Hi ${esc(lead.firstName)},</p>
   <p>Thanks — we received your request${photos ? ` and ${photos} photo${photos > 1 ? "s" : ""}` : ""}. ${esc(site.responsePromise)}</p>
   ${photos ? "" : "<p>If you can, reply with 3–4 photos: a wide shot of the space and close-ups of the problem areas.</p>"}

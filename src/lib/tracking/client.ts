@@ -118,9 +118,14 @@ export function getMarketPref(): string {
 }
 
 /** Standard event helper. `meta` maps to a Meta standard event when ad consent allows. */
+/** Spec §4 funnel events. Browser fires the first two; the rest come server-side from the CRM webhook. */
+export const FUNNEL_EVENTS = ["assessment_start", "photos_received", "qualified_lead", "commercial_walkthrough_booked", "estimate_sent", "job_won", "completed_revenue"] as const;
+
 export function track(event: string, params: Record<string, unknown> = {}, meta?: { name: string; eventId?: string; custom?: Record<string, unknown> }) {
   const market = (params.market as string) ?? getMarketPref();
   push({ event, market, ...params });
+  // Direct gtag setups (no GTM): forward funnel events to GA4. Consent mode governs storage.
+  if (!tracking.gtm && tracking.ga4 && window.gtag && (FUNNEL_EVENTS as readonly string[]).includes(event)) window.gtag("event", event, { market, ...params });
   if (meta && currentConsent().ad_storage === "granted") {
     window.fbq?.("track", meta.name, { market, ...meta.custom }, meta.eventId ? { eventID: meta.eventId } : undefined);
   }
