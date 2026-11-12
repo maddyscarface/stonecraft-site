@@ -5,8 +5,19 @@ Staging: https://stonecraft-staging.vercel.app (Vercel **preview** deployment, `
 was not touched.
 
 ## What changed
-- **Identity "Honed"**: basalt / bone / bronze palette, Cormorant Garamond display + Manrope body,
-  square corners, tile monogram wordmark. Legacy token names are aliased so every route inherits it.
+- **Build 04 alignment (spec `04_STONECRAFT_CURSOR_BUILD.md`)**:
+  - Exact palette: graphite #25292B, limestone #EEE9E1, champagne bronze #B89A70, white, and sage-grey #77827C, with a subtle stone grain.
+  - Spec hero copy and CTAs.
+  - Separate residential and commercial journeys.
+  - Macro before/after slider with "Illustrative" badges.
+  - Spec service nav.
+  - §2 lead fields: surface material, area, showers, condition, and distinct treatments with glazed-tile guidance. Renters must acknowledge authorised approval. The hospital note makes no compliance promise.
+  - GHL stages exactly per §3, with Boston and Palm Beach/Broward teams.
+  - §4 funnel events.
+  - §5 admin status labels, audit log, and a production storage guard that can't be masked.
+  - Docs: `docs/22-creative-library.md` (§6) and `docs/23-crm-events-campaigns.md` (§3–§5 mapping and campaign naming).
+- **Type and brand marks**: Cormorant Garamond display + Manrope body, square corners, tile monogram
+  wordmark. Legacy token names are aliased so every route inherits the palette.
 - **Photography**: 28 free-licensed Pexels photos (`src/config/photos.ts`, credits in
   `docs/20-photo-credits.md`). All are flagged `stock: true` and labelled "Illustrative photo"
   on the page; the footer states photography is licensed stock, not StoneCraft projects. The
@@ -28,20 +39,25 @@ was not touched.
 | Google Ads offline conversions | Queued (`gads_offline`) instead of uploaded | `GOOGLE_ADS_DEVELOPER_TOKEN`, `_CLIENT_ID`, `_CLIENT_SECRET`, `_REFRESH_TOKEN`, `_CUSTOMER_ID`, `_CONVERSION_ACTIONS` (verify `GOOGLE_ADS_API_VERSION`) |
 | Revenue attribution | Stored per lead (first + last touch, click IDs) for 400 days; won/paid CRM stages with a value create a revenue record | `/api/crm/webhook` + `CRM_WEBHOOK_SECRET`; read at `/api/admin/revenue` (admin token) |
 | DataMoon / AudienceLab | Webhook returns 404, pixel never loads | `INTENT_PROVIDER`, `INTENT_WEBHOOK_SECRET`, `NEXT_PUBLIC_INTENT_ENABLED=true`, `NEXT_PUBLIC_INTENT_PIXEL_SRC`. Field names in `src/lib/intent/providers.ts` are marked VERIFY. Intent contacts are tagged `intent:no-auto-sms`. |
-| Durable storage | In-memory (staging only) | Upstash/Supabase vars in `.env.example` |
+| Durable storage | In-memory on preview/local only. On `VERCEL_ENV=production`, `LEAD_ALLOW_MEMORY_STORE` / `ALLOW_LOCAL_UPLOADS` are ignored, so lead intake returns 503 and `/api/health` reports `blocked` until Upstash/Supabase are configured | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| Admin | All /admin pages and APIs require `ADMIN_TOKEN` (≥24 chars). Without it, admin is locked | `ADMIN_TOKEN` |
 
 All browser tags are consent-gated; ad tags respect Global Privacy Control.
 
 ## Tests
-- `npm run typecheck`, `npm test` (53 unit tests incl. `tests/phase2.test.ts`), `npm run build`.
+- `npm run typecheck`, `npm test` (64 unit tests, incl. `tests/phase2.test.ts` and `tests/spec04.test.ts` for the spec stages, events, treatments, renter approval and storage guard), `npm run build`.
 - `BASE_URL=https://stonecraft-staging.vercel.app node scripts/e2e-staging.mjs` (full lead flow,
-  dedup, attribution, intent/admin guards). It submits QA leads, so never run it against production.
+  dedup, attribution, intent/admin guards, plus the Build 04 checks: hero, journeys, illustrative badge, renter approval, hospital note,
+  funnel events and admin redirect). It submits QA leads, so never run it against production.
 - `scripts/e2e.mjs` predates the estimate-qualifier (budget & visit) step; its photo-step selector no longer
   matches the form flow, so use `scripts/e2e-staging.mjs` for the full flow.
 
 ## Rollback
 Staging: re-point `stonecraft-staging.vercel.app` to `dpl_5M4EzQFDRFSLKn9KKJUurhL8qjKs` (the
 previous staging deployment). Code: `main` is untouched at `f5e7f61`.
+
+## ⚠ Before any production deploy
+The Vercel project sets `LEAD_ALLOW_MEMORY_STORE=1` for **production and preview**. This branch deliberately ignores that flag on production (spec §5). Configure Upstash and Supabase first, or production lead intake will block (503).
 
 ## Owner inputs still needed
 Phone numbers; GHL token, location IDs, pipelines/stages/workflows, custom field IDs; GTM/GA4/Ads/Meta
