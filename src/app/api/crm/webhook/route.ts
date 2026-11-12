@@ -9,7 +9,9 @@ import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { STAGE_EVENTS, externalContactId } from "@/lib/crm/sync";
 import { sendGa4, sendMeta } from "@/lib/tracking/server";
-import { kvSetNx, listPush } from "@/lib/store";
+import { kvGet, kvSetNx, listPush } from "@/lib/store";
+import { uploadOfflineConversion } from "@/lib/tracking/google-ads";
+import type { AttributionSnapshot, RevenueRecord } from "@/lib/attribution/revenue";
 import { openAiStageEvent, sendOpenAiEvent } from "@/lib/openai-ads/server";
 
 export const runtime = "nodejs";
@@ -59,7 +61,19 @@ export async function POST(req: NextRequest) {
         })
       : Promise.resolve({ sent: false, skipped: oa ? "older than 7 days" : "no mapping" }),
   ]);
-  if (map.googleAds && b.gclid) await listPush("gads_offline", { gclid: b.gclid, conversion: map.googleAds, time: new Date(time * 1000).toISOString(), value: b.value ?? 0, market: b.market });
-  await listPush("conversions", { eventId, stage, event: map.ga4, market: b.market, value: b.value ?? 0, at: new Date(time * 1000).toISOString() });
-  return NextResponse.json({ ok: true, eventId, meta, ga4, openai });
+  const at = new Date(time * 1000).toISOString();
+  const attribution = await kvGet<AttributionSnapshot>(`attr:${user.externalId}`);
+  const gclid = b.gclid ?? attribution?.clickIds.gclid;
+  let googleAds: { sent: boolean; reason?: string; status?: number } = { sent: false, reason: "no mapping or click id" };
+  if (map.googleAds && (gclid || attribution?.clickIds.gbraid || attribution?.clickIds.wbraid)) {
+    const conv = { gclid, gbraid: attribution?.clickIds.gbraid, wbraid: attribution?.clickIds.wbraid, conversion: map.googleAds, time: at, value: b.value ?? 0, orderId: eventId };
+    googleAds = await uploadOfflineConversion(conv);
+    if (!googleAds.sent && gclid) await listPush("gads_offline", { gclid, conversion: map.googleAds, time: at, value: b.value ?? 0, market: b.market });
+  }
+  await listPush("conversions", { eventId, stage, event: map.ga4, market: b.market, value: b.value ?? 0, at, source: attribution?.last.source, firstSource: attribution?.first.source });
+  if ((b.value ?? 0) > 0 && /won|purchase|paid/.test(map.ga4)) {
+    const rev: RevenueRecord = { eventId, stage, value: b.value!, currency: "USD", market: b.market, at, attribution };
+    await listPush("revenue", rev);
+  }
+  return NextResponse.json({ ok: true, eventId, meta, ga4, openai, googleAds, attributed: Boolean(attribution) });
 }
