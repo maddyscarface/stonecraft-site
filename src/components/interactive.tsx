@@ -155,3 +155,44 @@ export function ServiceSelector() {
     </div>
   );
 }
+
+/* ───────── Macro detail comparison (illustrative pairs, spec §1) ───────── */
+
+export function MacroCompare({ pairs, dark }: { pairs: { id: string; label: string; detail: string; before: string; after: string; alt: string }[]; dark?: boolean }) {
+  const [i, setI] = useState(0);
+  const [pos, setPos] = useState(50);
+  const p = pairs[i];
+  return (
+    <div data-testid="macro-compare">
+      <div role="tablist" aria-label="Surface detail" className="mb-5 flex flex-wrap gap-2">
+        {pairs.map((x, n) => (
+          <button key={x.id} role="tab" aria-selected={n === i} type="button" onClick={() => { setI(n); setPos(50); }}
+            className={`border px-3.5 py-2 text-[11px] font-bold uppercase tracking-[.16em] transition ${n === i ? (dark ? "border-bronze-light bg-bronze-light text-basalt" : "border-basalt bg-basalt text-bone") : (dark ? "border-white/25 text-bone/80 hover:border-bone" : "border-basalt/20 text-basalt/75 hover:border-basalt")}`}>
+            {x.label}
+          </button>
+        ))}
+      </div>
+      <figure className="relative aspect-[4/3] w-full select-none overflow-hidden bg-basalt shadow-premium">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={p.after} alt={`${p.alt}: after (illustrative)`} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+        <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={p.before} alt={`${p.alt}: simulated before (illustrative)`} className="h-full w-full object-cover" loading="lazy" />
+        </div>
+        <div className="pointer-events-none absolute inset-y-0" style={{ left: `${pos}%` }}>
+          <div className="h-full w-px -translate-x-1/2 bg-bone" />
+          <div className="absolute top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center border border-bone bg-basalt/80 text-bone">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden><path d="M9 6l-6 6 6 6M15 6l6 6-6 6" /></svg>
+          </div>
+        </div>
+        <span className="absolute left-3 top-3 bg-bone/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.18em] text-basalt" data-testid="illustrative-badge">Illustrative</span>
+        <span className="absolute bottom-3 left-3 bg-basalt/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.18em] text-bone">Before · simulated</span>
+        <span className="absolute bottom-3 right-3 bg-bronze-light px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.18em] text-basalt">After</span>
+        <input type="range" min={0} max={100} value={pos} onChange={(e) => setPos(Number(e.target.value))} aria-label={`Compare before and after: ${p.label}`} className="absolute inset-0 h-full w-full cursor-ew-resize opacity-0" />
+      </figure>
+      <figcaption className={`mt-3 flex flex-wrap items-baseline justify-between gap-2 text-xs ${dark ? "text-bone/65" : "text-basalt/65"}`}>
+        <span><strong className={dark ? "text-bone" : "text-basalt"}>{p.detail}.</strong> Licensed stock photo; the &ldquo;before&rdquo; is a digital simulation of typical wear on the same image. Not a StoneCraft project.</span>
+      </figcaption>
+    </div>
+  );
+}

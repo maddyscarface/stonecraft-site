@@ -107,7 +107,7 @@ export const estimateConfig: EstimateConfig = {
   addressLabel: "Street address (optional, for the estimate visit)",
 };
 
-export const briefTheme: BriefTheme = { dark: "#1A3828", accent: "#D4B896", accentSoft: "#F5F0E8", ink: "#1A3828", muted: "#5d7266" };
+export const briefTheme: BriefTheme = { dark: "#25292B", accent: "#B89A70", accentSoft: "#EEE9E1", ink: "#25292B", muted: "#5F6A64" };
 
 export const qualifierTheme: QualifierTheme = {
   input: "field",
