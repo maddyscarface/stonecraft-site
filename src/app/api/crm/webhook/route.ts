@@ -1,13 +1,14 @@
 /**
  * CRM → conversion webhook. Configure a GoHighLevel workflow ("Opportunity stage changed" → Webhook)
  * to POST here with header `x-sc-webhook-secret: $CRM_WEBHOOK_SECRET`.
- * Sends qualified_lead / appointment_booked / job_won / purchase to Meta CAPI + GA4 MP,
+ * Sends photos_received / qualified_lead / commercial_walkthrough_booked / estimate_sent / job_won /
+ * completed_revenue (spec §4) to Meta CAPI + GA4 MP + OpenAI, deduplicated per opportunity + event,
  * and logs Google Ads offline conversions (gclid) for CSV import or API upload.
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { STAGE_EVENTS, externalContactId } from "@/lib/crm/sync";
+import { REVENUE_EVENTS, externalContactId, stageEvent } from "@/lib/crm/sync";
 import { sendGa4, sendMeta } from "@/lib/tracking/server";
 import { kvGet, kvSetNx, listPush } from "@/lib/store";
 import { uploadOfflineConversion } from "@/lib/tracking/google-ads";
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
   if (!p.success) return NextResponse.json({ error: "invalid" }, { status: 400 });
   const b = p.data;
   const stage = norm(b.stage);
-  const map = STAGE_EVENTS[stage] ?? STAGE_EVENTS[Object.keys(STAGE_EVENTS).find((k) => stage.includes(k)) ?? ""];
+  const map = stageEvent(stage);
   if (!map) return NextResponse.json({ ok: true, ignored: stage });
 
   const subject = b.opportunityId ?? b.contactId ?? externalContactId(b.email, b.phone);
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
   const user = { email: b.email, phone: b.phone, firstName: b.firstName, lastName: b.lastName, zip: b.zip, externalId: externalContactId(b.email, b.phone) };
   const consent = { ad_storage: true, analytics_storage: true }; // consent recorded at lead time; CRM should not send opted-out contacts (tag filter)
 
-  const oa = openAiStageEvent(stage);
+  const oa = openAiStageEvent(map.ga4);
   const ageOk = Date.now() - time * 1000 < 7 * 864e5; // OpenAI accepts events up to 7 days old
   const [meta, ga4, openai] = await Promise.all([
     map.meta ? sendMeta({ name: map.meta, ga4Name: map.ga4, eventId, market: b.market, value: b.value, user, client: { fbc: b.fbc, fbp: b.fbp }, consent, time }) : Promise.resolve({ sent: false, reason: "no meta mapping" }),
@@ -71,8 +72,8 @@ export async function POST(req: NextRequest) {
     if (!googleAds.sent && gclid) await listPush("gads_offline", { gclid, conversion: map.googleAds, time: at, value: b.value ?? 0, market: b.market });
   }
   await listPush("conversions", { eventId, stage, event: map.ga4, market: b.market, value: b.value ?? 0, at, source: attribution?.last.source, firstSource: attribution?.first.source });
-  if ((b.value ?? 0) > 0 && /won|purchase|paid/.test(map.ga4)) {
-    const rev: RevenueRecord = { eventId, stage, value: b.value!, currency: "USD", market: b.market, at, attribution };
+  if ((b.value ?? 0) > 0 && REVENUE_EVENTS.has(map.ga4)) {
+    const rev: RevenueRecord = { eventId, stage, event: map.ga4, value: b.value!, currency: "USD", market: b.market, at, attribution };
     await listPush("revenue", rev);
   }
   return NextResponse.json({ ok: true, eventId, meta, ga4, openai, googleAds, attributed: Boolean(attribution) });

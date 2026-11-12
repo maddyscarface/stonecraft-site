@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { kvConfigured, memoryStoreBlocked } from "@/lib/store";
+import { kvConfigured, memoryStoreBlocked, productionOverrideIgnored } from "@/lib/store";
+import { localUploadsAllowed, supabaseConfigured } from "@/lib/photos";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,10 @@ export function GET() {
       openai_capi: Boolean(e.OPENAI_ADS_PIXEL_ID && e.OPENAI_ADS_API_KEY),
       openai_validate_only: e.OPENAI_ADS_VALIDATE_ONLY !== "false",
     },
-    lead_intake: memoryStoreBlocked() ? "blocked: Upstash not configured in production" : "ok",
+    environment: e.VERCEL_ENV ?? e.NODE_ENV,
+    lead_intake: memoryStoreBlocked() ? "blocked: durable storage (Upstash) not configured in production" : kvConfigured ? "ok: durable" : "ok: in-memory (non-production only, data is not retained)",
+    photo_storage: supabaseConfigured ? "ok: durable" : localUploadsAllowed() ? "in-memory (non-production only)" : "blocked: Supabase Storage not configured",
+    production_override_ignored: productionOverrideIgnored(),
     note: "Credentials present does not mean the integration is verified. See docs/18-qa-deploy.md.",
   });
 }

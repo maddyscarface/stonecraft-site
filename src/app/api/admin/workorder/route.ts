@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdmin } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 import { briefToText, generateBrief, type WorkOrderInput } from "@/lib/workorder/engine";
 
 export async function POST(req: NextRequest) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorised" }, { status: 401 });
+  await audit("admin.workorder.post");
   const input = (await req.json()) as WorkOrderInput;
   // Strip any pricing the caller may have included — tech briefs never carry it.
   const { priceTotal: _p, margin: _m, techPay: _t, ...safe } = input;
