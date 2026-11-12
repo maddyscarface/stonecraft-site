@@ -41,7 +41,7 @@ export default function HomePage() {
       <section className="relative isolate overflow-hidden bg-basalt text-white">
         <div className="absolute inset-0 -z-10"><Photo k="vanity-dark-marble" priority sizes="100vw" /><div className="photo-shade-side absolute inset-0" /></div>
         <div className="container-sc py-24 md:py-36">
-          <p className="eyebrow mb-7 text-bronze-light"><span className="rule-bronze" />Tile · Grout · Shower · Natural stone</p>
+          <p className="eyebrow mb-7 text-bronze-light"><span className="rule-bronze" />Tile · Grout<span className="hidden sm:inline"> · Shower</span> · Stone</p>
           <h1 className="max-w-4xl font-serif text-[46px] leading-[0.98] text-bone md:text-[86px]">Your tile. Your grout. Your stone. <em className="text-bronze-light">Restored.</em></h1>
           <p className="mt-8 max-w-xl text-lg leading-relaxed text-bone/80">Professional tile, grout, shower and natural stone restoration for homeowners, renters, property managers and commercial facilities in Greater Boston and Southeast Florida.</p>
           <div className="mt-10 flex flex-wrap gap-3">

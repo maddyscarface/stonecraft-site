@@ -118,6 +118,16 @@ export function SegmentGrid({ ids }: { ids: string[] }) {
           </div>
         </Link>
       ))}
+      {ids.length % 3 === 2 && (
+        <Link href="/commercial-site-assessment?program=multi-property" className="group flex flex-col justify-between bg-basalt p-8 text-bone shadow-card transition hover:shadow-premium">
+          <div>
+            <p className="eyebrow text-bronze-light">Another facility type?</p>
+            <h3 className="mt-4 font-serif text-[28px] leading-tight">Offices, retail, fitness, residential towers—if it&apos;s tile, grout or stone, we&apos;ll scope it.</h3>
+            <p className="mt-4 text-sm leading-relaxed text-bone/70">Tell us what you manage. We&apos;ll come back with a site walk and a written, phased scope.</p>
+          </div>
+          <span className="link-arrow mt-8 text-bronze-light">Request a site assessment <ArrowRight size={14} className="transition group-hover:translate-x-1" /></span>
+        </Link>
+      )}
     </div>
   );
 }
@@ -174,7 +184,7 @@ export function RestoreVsReplace() {
 export function PriceGuide({ show }: { show: boolean }) {
   if (!show) return <p className="border border-cream-dark bg-white p-6 text-sm">Pricing is set after we review your photos. You'll receive a written scope and price before anything is booked.</p>;
   return (
-    <div id="price-guide" className="scroll-mt-24 border-t-2 border-bronze bg-white p-7 shadow-card">
+    <div id="price-guide" className="scroll-mt-24 self-start border-t-2 border-bronze bg-white p-7 shadow-card">
       <PricingViewBeacon where="price-guide" />
       <h3 className="font-serif text-2xl">What Greater Boston projects typically cost</h3>
       <dl className="mt-5 grid gap-x-8 gap-y-1 text-sm sm:grid-cols-2">{Object.values(publicPriceRanges).map((r) => <div key={r.label} className="flex justify-between gap-3 border-b border-cream-dark py-2.5"><dt>{r.label}</dt><dd className="font-semibold">{r.range}</dd></div>)}</dl>

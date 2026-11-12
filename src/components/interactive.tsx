@@ -88,7 +88,7 @@ export function AudienceSelector() {
     <div className="border-b border-cream-dark bg-cream">
       <div className="container-sc flex flex-col gap-5 py-8 lg:flex-row lg:items-center lg:gap-10">
         <p className="shrink-0 font-serif text-[26px] leading-none text-basalt">I need restoration for</p>
-        <div className="grid flex-1 grid-cols-2 gap-px bg-cream-dark md:grid-cols-5">
+        <div className="grid flex-1 grid-cols-2 gap-px bg-cream-dark md:grid-cols-5 [&>*:last-child]:col-span-2 md:[&>*:last-child]:col-span-1">
           {AUDIENCES.map(({ id, label, href, Icon }) => (
             <Link key={id} href={href} onClick={() => track("audience_select", { audience: id })}
               className="group flex items-center gap-3 bg-cream px-4 py-4 text-[13px] font-semibold text-basalt transition hover:bg-basalt hover:text-bone">
