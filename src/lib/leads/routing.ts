@@ -2,6 +2,8 @@ import { cityByZip } from "@/config/cities";
 import { markets, type Market } from "@/config/markets";
 import { detectZone } from "@/lib/scheduling/engine";
 import type { LeadInput } from "./schema";
+import { teamFor } from "@/config/crm";
+import { ghlPipeline } from "@/lib/crm/sync";
 
 export type Pipeline = "residential" | "commercial" | "property_manager";
 
@@ -45,12 +47,17 @@ export function routeLead(lead: LeadInput): Routing {
     `market:${market?.id ?? "unknown"}`,
     `type:${lead.customerType}`,
     `variant:${lead.variant}`,
-    `pipeline:${pipeline}`,
+    `pipeline:${ghlPipeline(pipeline)}`,
+    pipeline === "property_manager" ? "segment:property-portfolio" : "",
+    `team:${teamFor(market?.id, activeZone?.id)}`,
     activeZone ? `zone:${activeZone.id}` : anyZone ? `zone:${anyZone.id}:inactive` : "zone:none",
     market?.status === "pre-launch" ? "market:pre-launch" : "",
     lead.photoKeys.length ? "photos:received" : "photos:none",
     lead.variant === "commercial" ? `segment:${lead.segment}` : "",
     lead.variant === "renter" && lead.landlordOutreachConsent ? "renter:landlord-outreach-authorised" : "",
+    lead.variant === "renter" ? "approval:awaiting-authorised-approver" : "",
+    lead.variant === "commercial" && lead.walkthroughRequested ? "commercial:walkthrough-requested" : "",
+    lead.variant === "commercial" && lead.segment === "hospitals" ? "healthcare:site-plan-required" : "",
     lead.smsConsent ? "sms:opt-in" : "sms:no-consent",
   ].filter(Boolean);
 

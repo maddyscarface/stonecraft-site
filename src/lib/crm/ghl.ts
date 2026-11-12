@@ -3,8 +3,9 @@
  * Env (per market — see .env.example):
  *   GHL_PRIVATE_TOKEN (Private Integration token, location scope)
  *   GHL_LOCATION_ID_BOSTON / GHL_LOCATION_ID_FL
- *   GHL_<MARKET>_PIPELINE_RESIDENTIAL / _COMMERCIAL / _PROPERTY_MANAGER   (pipeline ids)
- *   GHL_<MARKET>_STAGE_<SLUG>  (stage ids, e.g. GHL_BOSTON_STAGE_PHOTOS_RECEIVED)
+ *   GHL_<MARKET>_PIPELINE_RESIDENTIAL / _COMMERCIAL                      (pipeline ids)
+ *   GHL_<MARKET>_STAGE_<RES|COM>_<SLUG>  (stage ids, e.g. GHL_BOSTON_STAGE_RES_PHOTOS_RECEIVED, GHL_FL_STAGE_COM_INBOUND_OUTREACH)
+ *   GHL_<MARKET>_TEAM_USER_ID, GHL_<MARKET>_CALENDAR_RESIDENTIAL / _COMMERCIAL  (team owner + calendars per geography)
  * Without a token, the adapter runs in dry-run mode and returns the payloads it would send.
  *
  * VERIFY against current GHL API docs before go-live: custom-field keys vs ids, and that
@@ -15,7 +16,8 @@ import { estimateConfig } from "@/config/estimate";
 import type { LeadInput } from "@/lib/leads/schema";
 import type { Routing } from "@/lib/leads/routing";
 import type { Score } from "@/lib/leads/scoring";
-import { entryStage, externalContactId, normPhone, PIPELINES } from "./sync";
+import { entryStage, externalContactId, ghlPipeline, normPhone, PIPELINES } from "./sync";
+import { teamFor } from "@/config/crm";
 import { followUpPlan, type FollowUpStep } from "./followup";
 import { BRAND_TAG, scoreBand } from "@/config/crm";
 
@@ -28,12 +30,38 @@ export function ghlConfig(routing: Routing) {
   const token = process.env.GHL_PRIVATE_TOKEN;
   const prefix = routing.market?.ghl.pipelineEnvPrefix ?? "GHL_BOSTON";
   const locationId = routing.market ? process.env[routing.market.ghl.locationIdEnv] : undefined;
-  const pipelineId = process.env[`${prefix}_PIPELINE_${envKey(routing.pipeline)}`];
-  return { token, locationId, prefix, pipelineId, configured: Boolean(token && locationId) };
+  const pipeline = ghlPipeline(routing.pipeline);
+  const pipelineId = process.env[`${prefix}_PIPELINE_${envKey(pipeline)}`];
+  const assignedTo = process.env[`${prefix}_TEAM_USER_ID`] || undefined;
+  const calendarId = process.env[`${prefix}_CALENDAR_${envKey(pipeline)}`] || undefined;
+  return { token, locationId, prefix, pipeline, pipelineId, assignedTo, calendarId, configured: Boolean(token && locationId) };
+}
+
+export const stageEnvKey = (prefix: string, pipeline: "residential" | "commercial", stage: string) => `${prefix}_STAGE_${pipeline === "residential" ? "RES" : "COM"}_${envKey(stage)}`;
+
+/** Case-safe summary fields synced on every lead (spec §3): location, material, area, service, budget, score, campaign, status. */
+export function summaryFields(lead: LeadInput, routing: Routing, score: Score, status: string) {
+  const q = (lead.qualifiers ?? {}) as Record<string, unknown>;
+  const service = lead.variant === "commercial" ? [lead.segment, ...lead.surfaceTypes].join(", ") : [...(("surfaces" in lead ? lead.surfaces : []) as string[]), ...(("treatments" in lead ? lead.treatments : []) as string[])].join(", ");
+  const material = lead.variant === "commercial" ? lead.materials.join(", ") : ("material" in lead ? lead.material : undefined);
+  const area = lead.variant === "commercial" ? (lead.squareFeet ? `${lead.squareFeet} sq ft` : undefined) : ("area" in lead ? lead.area : undefined) ?? (q.size as string | undefined);
+  const budget = lead.variant === "commercial" ? lead.budget : (q.budget as string | undefined);
+  return {
+    sc_location: [routing.city, lead.zip, routing.marketId].filter(Boolean).join(" · "),
+    sc_team: teamFor(routing.marketId, routing.zoneId),
+    sc_material: material,
+    sc_area: area,
+    sc_service: service || undefined,
+    sc_budget: budget,
+    sc_lead_score: score.score,
+    sc_campaign: lead.attribution.utm_campaign ?? lead.attribution.last_touch_campaign,
+    sc_status: status,
+  };
 }
 
 export function buildContactPayload(lead: LeadInput, routing: Routing, score: Score, photoUrls: string[], extra: { gaClientId?: string } = {}) {
   const cf: Record<string, string | number | boolean | undefined> = {
+    ...summaryFields(lead, routing, score, entryStage(routing.pipeline, lead.photoKeys.length > 0)),
     sc_external_id: externalContactId(lead.email, lead.phone),
     sc_market: routing.marketId ?? "unknown",
     sc_zone: routing.zoneName ?? "",
@@ -59,6 +87,11 @@ export function buildContactPayload(lead: LeadInput, routing: Routing, score: Sc
     sc_roommates: lead.roommates, sc_landlord_approval: lead.landlordApprovalStatus,
     sc_landlord_outreach_consent: lead.landlordOutreachConsent,
     sc_landlord_name: lead.landlordName, sc_landlord_contact: lead.landlordContact,
+    sc_approver_role: lead.approverRole, sc_approval_verified: false, // a renter's statement is never treated as owner approval
+  });
+  if (lead.variant !== "commercial") Object.assign(cf, {
+    sc_dwelling: lead.dwelling, sc_showers: lead.showers, sc_issues: lead.issues.join(", "),
+    sc_treatments: lead.treatments.join(", "), sc_finish: lead.finish, sc_address: lead.address,
   });
   if (lead.variant === "landlord") Object.assign(cf, { sc_units: lead.units, sc_is_pm: lead.isPropertyManager, sc_turn_date: lead.turnDate, sc_property_type: lead.propertyType });
   if (lead.variant === "commercial") Object.assign(cf, {
@@ -66,6 +99,7 @@ export function buildContactPayload(lead: LeadInput, routing: Routing, score: Sc
     sc_surface_types: lead.surfaceTypes.join(", "), sc_access_restrictions: lead.accessRestrictions, sc_work_hours: lead.workHours,
     sc_budget: lead.budget, sc_procurement: lead.procurement, sc_decision_role: lead.decisionRole,
     sc_decision_maker: [lead.decisionMakerName, lead.decisionMakerTitle].filter(Boolean).join(", "), sc_timeline: lead.timeline,
+    sc_operational_constraints: lead.operationalConstraints, sc_walkthrough_requested: lead.walkthroughRequested, sc_walkthrough_window: lead.walkthroughWindow,
   });
   if ("surfaces" in lead) cf.sc_surfaces = (lead.surfaces as string[]).join(", ");
   // Pre-estimate answers (already sanitised by the API route) → sc_est_* custom fields.
@@ -121,7 +155,7 @@ export async function pushLeadToGhl(lead: LeadInput, routing: Routing, score: Sc
   const cfg = ghlConfig(routing);
   const contact = { ...buildContactPayload(lead, routing, score, photoUrls, extra), locationId: cfg.locationId };
   const stageName = entryStage(routing.pipeline, lead.photoKeys.length > 0);
-  const stageEnv = `${cfg.prefix}_STAGE_${envKey(stageName)}`;
+  const stageEnv = stageEnvKey(cfg.prefix, cfg.pipeline, stageName);
   const note = [
     `Web lead via ${lead.sourcePage ?? "site"} (${lead.variant}).`,
     `Score ${score.score} (${score.tier}): ${score.reasons.join("; ")}`,
@@ -133,8 +167,8 @@ export async function pushLeadToGhl(lead: LeadInput, routing: Routing, score: Sc
   const plan: FollowUpStep[] = followUpPlan(lead as LeadInput & { isPropertyManager?: boolean }, routing, score);
 
   if (!cfg.configured) {
-    const payloads = { contact, opportunity: { pipeline: routing.pipeline, pipelineEnv: `${cfg.prefix}_PIPELINE_${envKey(routing.pipeline)}`, stage: stageName, stageEnv }, note, followUps: plan };
-    if (process.env.GHL_LOG_DRY_RUN !== "false") console.info("[ghl:dry-run]", JSON.stringify({ event: lead.eventId, market: routing.marketId, pipeline: routing.pipeline, stage: stageName, tier: score.tier, score: score.score, hooks: plan.map((p) => p.hook) }));
+    const payloads = { contact, opportunity: { track: routing.pipeline, pipeline: cfg.pipeline, pipelineEnv: `${cfg.prefix}_PIPELINE_${envKey(cfg.pipeline)}`, team: teamFor(routing.marketId, routing.zoneId), assignedToEnv: `${cfg.prefix}_TEAM_USER_ID`, stage: stageName, stageEnv }, note, followUps: plan };
+    if (process.env.GHL_LOG_DRY_RUN !== "false") console.info("[ghl:dry-run]", JSON.stringify({ event: lead.eventId, market: routing.marketId, pipeline: cfg.pipeline, team: teamFor(routing.marketId, routing.zoneId), stage: stageName, tier: score.tier, score: score.score, hooks: plan.map((p) => p.hook) }));
     return { mode: "dry-run", payloads, followUps: plan.map((p) => ({ hook: p.hook, enrolled: false, reason: "dry-run" })) };
   }
 
@@ -147,7 +181,7 @@ export async function pushLeadToGhl(lead: LeadInput, routing: Routing, score: Sc
     if (cfg.pipelineId && stageId) {
       const opp = await call("/opportunities/upsert", "POST", cfg.token!, {
         locationId: cfg.locationId, pipelineId: cfg.pipelineId, pipelineStageId: stageId, contactId,
-        name: opportunityName(lead, routing), status: "open",
+        name: opportunityName(lead, routing), status: "open", ...(cfg.assignedTo ? { assignedTo: cfg.assignedTo } : {}),
       });
       opportunityId = opp?.opportunity?.id ?? opp?.id;
     }

@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { AREAS, COMMERCIAL_MATERIALS, FINISHES, ISSUES, MATERIALS, TREATMENTS } from "@/config/surfaces";
+
+const ids = <T extends readonly (readonly [string, ...string[]])[]>(list: T) => list.map((x) => x[0]) as [T[number][0], ...T[number][0][]];
+const optEnum = <T extends [string, ...string[]]>(v: T) => z.enum(v).optional().or(z.literal("").transform(() => undefined));
 
 const trimmed = (max: number) => z.string().trim().max(max);
 const optText = (max: number) => trimmed(max).optional().or(z.literal("").transform(() => undefined));
@@ -37,7 +41,20 @@ const base = z.object({
   qualifiers: z.record(z.unknown()).optional(),
 });
 
+/** Residential surface details (spec §2). Treatments stay separate: cleaning ≠ colour seal ≠ regrout ≠ polish ≠ topical. */
+const surfaceDetail = {
+  dwelling: optEnum(["house", "condo", "apartment", "multi_unit"]),
+  address: optText(200),
+  material: optEnum(ids(MATERIALS)),
+  area: optEnum(ids(AREAS)),
+  showers: z.coerce.number().int().min(0).max(20).optional(),
+  issues: z.array(z.enum(ids(ISSUES))).max(ISSUES.length).default([]),
+  treatments: z.array(z.enum(ids(TREATMENTS))).max(TREATMENTS.length).default([]),
+  finish: optEnum(ids(FINISHES)),
+};
+
 export const residentialLead = base.extend({
+  ...surfaceDetail,
   variant: z.literal("residential"),
   customerType: z.enum(["homeowner", "renter", "landlord"]).default("homeowner"),
   surfaces: z.array(z.enum(["shower", "bath_floor", "kitchen", "marble_stone", "countertops", "entry_mudroom", "other"])).max(7).default([]),
@@ -48,11 +65,16 @@ export const residentialLead = base.extend({
 });
 
 export const renterLead = base.extend({
+  ...surfaceDetail,
   variant: z.literal("renter"),
   customerType: z.literal("renter").default("renter"),
   surfaces: z.array(z.string().max(40)).max(7).default([]),
   roommates: z.coerce.number().int().min(1).max(8).default(1),
   landlordApprovalStatus: z.enum(["not_asked", "asked", "approved", "declined"]).default("not_asked"),
+  /** Who is authorised to approve work on the property (spec §2). Renters never approve on the owner's behalf. */
+  approverRole: optEnum(["landlord", "property_manager", "building_manager", "condo_association", "other"]),
+  /** Required: renter confirms no work is booked until the authorised person approves in writing. */
+  approvalAcknowledged: z.literal(true, { errorMap: () => ({ message: "Please confirm that the person authorised to approve work will approve it in writing first" }) }),
   /** Renter authorises StoneCraft to contact their landlord. Landlord details are only kept when true. */
   landlordOutreachConsent: z.boolean().default(false),
   landlordName: optText(120),
@@ -61,6 +83,7 @@ export const renterLead = base.extend({
 }).transform((v) => (v.landlordOutreachConsent ? v : { ...v, landlordName: undefined, landlordContact: undefined }));
 
 export const landlordLead = base.extend({
+  ...surfaceDetail,
   variant: z.literal("landlord"),
   customerType: z.literal("landlord").default("landlord"),
   company: optText(160),
@@ -84,6 +107,11 @@ export const commercialLead = base.extend({
   squareFeet: z.coerce.number().int().min(0).max(10_000_000).optional(),
   surfaceTypes: z.array(z.string().max(40)).max(10).default([]),
   accessRestrictions: optText(1000),
+  /** Current closures / operational constraints (spec §2). */
+  operationalConstraints: optText(1000),
+  materials: z.array(z.enum(ids(COMMERCIAL_MATERIALS))).max(COMMERCIAL_MATERIALS.length).default([]),
+  walkthroughRequested: z.boolean().default(false),
+  walkthroughWindow: optText(200),
   workHours: z.enum(["business", "evenings", "overnight", "weekends", "flexible", ""]).optional(),
   budget: z.enum(["lt10k", "10to25k", "25to75k", "75to250k", "250kplus", "unknown", ""]).optional(),
   procurement: z.enum(["po", "rfp", "approved_vendor", "board_approval", "unknown", ""]).optional(),

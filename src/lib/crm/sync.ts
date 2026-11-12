@@ -45,26 +45,53 @@ export const OWNERSHIP = {
   review_request: "ghl",
 } as const;
 
-/** CRM stage → conversion event mapping (sent server-side from the CRM webhook). */
-export const STAGE_EVENTS: Record<string, { ga4: string; meta?: string; googleAds?: string } | undefined> = {
+/**
+ * GHL pipelines and stages — exactly as spec §3. Residential and commercial opportunities live in separate
+ * pipelines (property managers / portfolios go to the commercial pipeline, tagged segment:property-portfolio).
+ */
+export const PIPELINES = {
+  residential: ["New", "Photos requested", "Photos received", "Qualified", "Estimate visit", "Proposal", "Won", "Lost", "Scheduled", "Completed"],
+  commercial: ["Inbound/outreach", "Facility qualified", "Site walkthrough", "Scope", "Bid/proposal", "Awarded", "Scheduled", "Closeout", "Recurring program"],
+} as const;
+export type GhlPipeline = keyof typeof PIPELINES;
+
+/** Internal routing track → GHL pipeline. */
+export const ghlPipeline = (track: "residential" | "commercial" | "property_manager"): GhlPipeline => (track === "residential" ? "residential" : "commercial");
+
+/**
+ * CRM stage → measurement events (spec §4): assessment_start and photos_received fire in the browser;
+ * the rest are sent server-side from the CRM webhook when the opportunity moves.
+ * Keys are normalised stage names (lowercase, non-letters → "_").
+ */
+export type StageEvent = { ga4: string; meta?: string; googleAds?: string };
+export const STAGE_EVENTS: Record<string, StageEvent | undefined> = {
+  // residential
+  photos_received: { ga4: "photos_received" },
   qualified: { ga4: "qualified_lead", meta: "QualifiedLead", googleAds: "qualified_lead" },
-  estimate_scheduled: { ga4: "appointment_booked", meta: "Schedule", googleAds: "appointment_booked" },
-  site_walk: { ga4: "appointment_booked", meta: "Schedule", googleAds: "appointment_booked" },
-  proposal_sent: { ga4: "quote_sent" },
+  proposal: { ga4: "estimate_sent", meta: "EstimateSent", googleAds: "estimate_sent" },
   won: { ga4: "job_won", meta: "Purchase", googleAds: "job_won" },
-  contract: { ga4: "job_won", meta: "Purchase", googleAds: "job_won" },
-  paid: { ga4: "purchase", meta: "Purchase", googleAds: "purchase" },
+  completed: { ga4: "completed_revenue", meta: "CompletedRevenue", googleAds: "completed_revenue" },
+  // commercial
+  facility_qualified: { ga4: "qualified_lead", meta: "QualifiedLead", googleAds: "qualified_lead" },
+  site_walkthrough: { ga4: "commercial_walkthrough_booked", meta: "Schedule", googleAds: "commercial_walkthrough_booked" },
+  bid_proposal: { ga4: "estimate_sent", meta: "EstimateSent", googleAds: "estimate_sent" },
+  awarded: { ga4: "job_won", meta: "Purchase", googleAds: "job_won" },
+  closeout: { ga4: "completed_revenue", meta: "CompletedRevenue", googleAds: "completed_revenue" },
 };
 
-export const PIPELINES = {
-  residential: ["New Lead", "Photos Requested", "Photos Received", "Qualified", "Estimate Scheduled", "Proposal Sent", "Won", "Job Scheduled", "Work Complete", "Paid", "Review"],
-  commercial: ["Target Account", "Contact Identified", "Outreach Started", "Meeting Booked", "Site Walk", "Scope Development", "Proposal", "Procurement/Approval", "Contract", "Work Scheduled", "Completed", "Renewal"],
-  property_manager: ["Partner Lead", "Portfolio Review", "Pilot Unit", "Approved Vendor", "Recurring Work", "Expansion"],
-} as const;
+/** Exact-key match first; then the longest key contained in the stage name (so "facility_qualified" beats "qualified"). */
+export function stageEvent(stage: string): StageEvent | undefined {
+  const k = stage.toLowerCase().replace(/[^a-z]+/g, "_").replace(/^_|_$/g, "");
+  if (STAGE_EVENTS[k]) return STAGE_EVENTS[k];
+  const hit = Object.keys(STAGE_EVENTS).filter((x) => k.includes(x)).sort((a, b) => b.length - a.length)[0];
+  return hit ? STAGE_EVENTS[hit] : undefined;
+}
+
+/** Events that carry revenue into attribution reporting. */
+export const REVENUE_EVENTS = new Set(["job_won", "completed_revenue"]);
 
 /** First stage an inbound web lead lands in. Commercial inbound skips outbound-only stages. */
-export function entryStage(pipeline: keyof typeof PIPELINES, hasPhotos: boolean) {
-  if (pipeline === "residential") return hasPhotos ? "Photos Received" : "New Lead";
-  if (pipeline === "commercial") return "Contact Identified";
-  return "Partner Lead";
+export function entryStage(track: "residential" | "commercial" | "property_manager", hasPhotos: boolean) {
+  if (ghlPipeline(track) === "residential") return hasPhotos ? "Photos received" : "New";
+  return "Inbound/outreach";
 }
