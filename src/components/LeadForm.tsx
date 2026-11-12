@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Home, KeyRound, Lock } from "lucide-react";
 import { PhotoUpload, type Uploaded } from "./PhotoUpload";
-import { currentConsent, getAttribution, newEventId, pushUserData, track } from "@/lib/tracking/client";
+import { currentConsent, getAttribution, gtagLeadConversion, newEventId, pushUserData, track } from "@/lib/tracking/client";
 import { useMarket } from "./MarketContext";
 import { EstimateQualifiers, validateQualifiers, withPricingSeen } from "./estimate/EstimateQualifiers";
 import { estimateConfig, qualifierTheme } from "@/config/estimate";
@@ -117,20 +117,21 @@ export function LeadForm(props: LeadFormProps) {
     try {
       const res = await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": eventId }, body: JSON.stringify(body) });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setServerError(data.error ?? "Something went wrong. Please call or text us."); if (data.fields) setErrors(data.fields); setSubmitting(false); return; }
+      if (!res.ok) { setServerError(data.error ?? "Something went wrong. Please try again or email info@stonecraftpros.com."); if (data.fields) setErrors(data.fields); setSubmitting(false); return; }
       // Fire the browser-side conversion exactly once per eventId.
       let fired = false; try { fired = sessionStorage.getItem(`sc_fired_${eventId}`) === "1"; } catch {}
       if (!fired && !data.duplicate) {
         pushUserData({ email: str("email"), phone: str("phone"), firstName: str("firstName"), lastName: str("lastName"), zip: str("zip") });
         track("generate_lead", { event_id: eventId, form_variant: variant, customer_type: body.customerType, market: data.market ?? market, lead_tier: data.tier, photos: photos.length, segment: body.segment },
           { name: "Lead", eventId, custom: { content_category: variant, lead_tier: data.tier } });
+        gtagLeadConversion(eventId, { form_variant: variant, lead_tier: data.tier, market: data.market ?? market });
         // OpenAI Ads pixel: same event_id as the server Conversions API call (deduplicated).
         if (currentConsent().ad_storage === "granted") oaiqLead(eventId);
         try { sessionStorage.setItem(`sc_fired_${eventId}`, "1"); } catch {}
       }
       router.push(`/thank-you?v=${variant}&m=${data.market ?? market}${photos.length ? "" : "&photos=0"}`);
     } catch {
-      setServerError("Network error. Please try again, or call or text us."); setSubmitting(false);
+      setServerError("Network error. Please try again, or email info@stonecraftpros.com."); setSubmitting(false);
     }
   }
 
@@ -138,15 +139,15 @@ export function LeadForm(props: LeadFormProps) {
   const typeCards: [CustomerType, string, typeof Home][] = [["homeowner", "Homeowner", Home], ["renter", "Renter", Building2], ["landlord", "Landlord / Property manager", KeyRound]];
 
   return (
-    <div ref={formRef} className="scroll-mt-24 rounded-lg border border-hunter bg-white p-5 shadow-premium md:p-8" data-testid="lead-form" data-variant={variant}>
+    <div ref={formRef} className="scroll-mt-28 border-t-2 border-bronze bg-white p-6 shadow-premium md:p-10" data-testid="lead-form" data-variant={variant}>
       <div className="mb-6 flex items-center gap-2" aria-label={`Step ${step} of ${steps}`}>
-        {Array.from({ length: steps }, (_, i) => <span key={i} className={`h-1.5 flex-1 rounded-full ${i < step ? "bg-hunter" : "bg-cream-dark"}`} />)}
+        {Array.from({ length: steps }, (_, i) => <span key={i} className={`h-[3px] flex-1 ${i < step ? "bg-bronze" : "bg-cream-dark"}`} />)}
       </div>
       <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" value={str("website")} onChange={(e) => set("website", e.target.value)} />
 
       {step === 1 && (
         <fieldset className="grid gap-4 sm:grid-cols-2">
-          <legend className="mb-4 font-serif text-2xl">{isCommercial ? "Your contact details" : "Tell us about yourself"}</legend>
+          <legend className="mb-4 font-serif text-[30px] leading-tight">{isCommercial ? "Your contact details" : "Tell us about yourself"}</legend>
           <div><Field label="First name" required><input className="field" autoComplete="given-name" value={str("firstName")} onChange={(e) => set("firstName", e.target.value)} data-testid="firstName" /></Field>{err("firstName")}</div>
           <Field label="Last name"><input className="field" autoComplete="family-name" value={str("lastName")} onChange={(e) => set("lastName", e.target.value)} /></Field>
           <div><Field label="Email" required><input className="field" type="email" autoComplete="email" value={str("email")} onChange={(e) => set("email", e.target.value)} data-testid="email" /></Field>{err("email")}</div>
@@ -162,7 +163,7 @@ export function LeadForm(props: LeadFormProps) {
 
       {step === 2 && !isCommercial && !props.compact && (
         <fieldset className="space-y-5">
-          <legend className="mb-2 font-serif text-2xl">Tell us about your space</legend>
+          <legend className="mb-2 font-serif text-[30px] leading-tight">Tell us about your space</legend>
           {!props.customerType && (
             <div><span className="label">I am a</span>
               <div className="grid gap-2 sm:grid-cols-3">{typeCards.map(([id, label, Icon]) => (
@@ -213,7 +214,7 @@ export function LeadForm(props: LeadFormProps) {
 
       {step === 2 && isCommercial && (
         <fieldset className="space-y-5">
-          <legend className="mb-2 font-serif text-2xl">About the facility</legend>
+          <legend className="mb-2 font-serif text-[30px] leading-tight">About the facility</legend>
           <div><Field label="Facility type" required><select className="field" value={str("segment")} onChange={(e) => set("segment", e.target.value)} data-testid="segment"><option value="">Choose…</option>{SEGMENTS.map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select></Field>{err("segment")}</div>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Buildings"><input className="field" inputMode="numeric" value={str("buildings")} onChange={(e) => set("buildings", e.target.value.replace(/\D/g, ""))} /></Field>
@@ -230,7 +231,7 @@ export function LeadForm(props: LeadFormProps) {
 
       {step === 3 && isCommercial && (
         <fieldset className="space-y-5">
-          <legend className="mb-2 font-serif text-2xl">Budget, approvals & timing</legend>
+          <legend className="mb-2 font-serif text-[30px] leading-tight">Budget, approvals & timing</legend>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Anticipated budget"><select className="field" value={str("budget")} onChange={(e) => set("budget", e.target.value)}><option value="">Choose…</option><option value="lt10k">Under $10k</option><option value="10to25k">$10k–$25k</option><option value="25to75k">$25k–$75k</option><option value="75to250k">$75k–$250k</option><option value="250kplus">$250k+</option><option value="unknown">Not yet defined</option></select></Field>
             <Field label="Procurement process"><select className="field" value={str("procurement")} onChange={(e) => set("procurement", e.target.value)}><option value="">Choose…</option><option value="po">Purchase order</option><option value="rfp">RFP / bid</option><option value="approved_vendor">Approved-vendor list</option><option value="board_approval">Board approval</option><option value="unknown">Not sure</option></select></Field>
@@ -248,7 +249,7 @@ export function LeadForm(props: LeadFormProps) {
 
       {step === qStep && withQualifiers && (
         <fieldset>
-          <legend className="mb-2 font-serif text-2xl">Budget & visit</legend>
+          <legend className="mb-2 font-serif text-[30px] leading-tight">Budget & visit</legend>
           <p className="mb-4 text-sm text-hunter/70">A few quick answers so your quote comes with no surprises.</p>
           <EstimateQualifiers cfg={estimateConfig} value={q} onChange={(n) => { setQ(n); setQErrors({}); }} theme={qualifierTheme} errors={qErrors}
             showRange={market !== "south-florida"} />
@@ -257,7 +258,7 @@ export function LeadForm(props: LeadFormProps) {
 
       {((step === photoStep && withQualifiers) || (props.compact && step === 2)) && !isCommercial && (
         <fieldset>
-          <legend className="mb-4 font-serif text-2xl">Add your photos</legend>
+          <legend className="mb-4 font-serif text-[30px] leading-tight">Add your photos</legend>
           <PhotoUpload eventId={eventId} value={photos} onChange={setPhotos} />
           <p className="mt-2 text-xs text-hunter/60">No photos handy? Skip this step — we'll text or email you a link.</p>
         </fieldset>
@@ -265,7 +266,7 @@ export function LeadForm(props: LeadFormProps) {
 
       {step === steps && (
         <fieldset className="mt-2 space-y-4">
-          {!props.compact && <legend className="mb-2 font-serif text-2xl">{isCommercial ? "Scope photos & notes" : "Anything else?"}</legend>}
+          {!props.compact && <legend className="mb-2 font-serif text-[30px] leading-tight">{isCommercial ? "Scope photos & notes" : "Anything else?"}</legend>}
           {isCommercial && <PhotoUpload eventId={eventId} value={photos} onChange={setPhotos} />}
           <Field label="Message (optional)"><textarea className="field" rows={4} value={str("message")} onChange={(e) => set("message", e.target.value)} placeholder={isCommercial ? "Scope notes, phasing needs, vendor requirements…" : "Urgency, specific concerns, building rules…"} /></Field>
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={!!f.contactConsent} onChange={(e) => set("contactConsent", e.target.checked)} data-testid="contact-consent" /><span>I agree that StoneCraft may contact me by phone or email about this request. *</span></label>
