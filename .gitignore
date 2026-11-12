@@ -4,3 +4,10 @@ node_modules
 .env
 *.tsbuildinfo
 next-env.d.ts
+public/images/*.webp
+
+# restored from *.b64 at build time
+public/og.png
+public/downloads/*.docx
+public/downloads/*.pdf
+deploy-bundle.tgz
