@@ -6,7 +6,7 @@
  */
 export type Touch = { source: string; medium?: string; campaign?: string; at?: string };
 export type AttributionSnapshot = { first: Touch; last: Touch; landingPage?: string; clickIds: Record<string, string>; leadEventId: string; leadAt: string; market?: string | null };
-export type RevenueRecord = { eventId: string; stage: string; value: number; currency: "USD"; market?: string | null; at: string; attribution: AttributionSnapshot | null };
+export type RevenueRecord = { eventId: string; stage: string; event?: string; value: number; currency: "USD"; market?: string | null; at: string; attribution: AttributionSnapshot | null };
 
 type Attr = Record<string, string | undefined>;
 
@@ -18,15 +18,19 @@ export function attributionSnapshot(a: Attr, leadEventId: string, market?: strin
   return { first, last, landingPage: a.landing_page, clickIds, leadEventId, leadAt: now.toISOString(), market };
 }
 
-/** Sum revenue by first- or last-touch source/medium (and campaign). */
-export function summarizeRevenue(records: RevenueRecord[], model: "first" | "last" = "last") {
+/**
+ * Sum revenue by first- or last-touch source/medium (and campaign).
+ * `basis`: "completed" counts completed_revenue records (default: money actually delivered);
+ * "won" counts job_won records (booked value). Older records without `event` count as won.
+ */
+export function summarizeRevenue(records: RevenueRecord[], model: "first" | "last" = "last", basis: "completed" | "won" = "completed") {
   const rows = new Map<string, { source: string; medium: string; campaign: string; revenue: number; deals: number }>();
-  for (const r of records) {
+  for (const r of records.filter((x) => (x.event ?? "job_won") === (basis === "completed" ? "completed_revenue" : "job_won"))) {
     const t = r.attribution?.[model] ?? { source: "unattributed" };
     const key = `${t.source}|${t.medium ?? ""}|${t.campaign ?? ""}`;
     const row = rows.get(key) ?? { source: t.source, medium: t.medium ?? "", campaign: t.campaign ?? "", revenue: 0, deals: 0 };
     row.revenue += r.value; row.deals += 1; rows.set(key, row);
   }
   const list = [...rows.values()].sort((a, b) => b.revenue - a.revenue);
-  return { model, total: list.reduce((s, r) => s + r.revenue, 0), deals: list.reduce((s, r) => s + r.deals, 0), rows: list };
+  return { model, basis, total: list.reduce((s, r) => s + r.revenue, 0), deals: list.reduce((s, r) => s + r.deals, 0), rows: list };
 }

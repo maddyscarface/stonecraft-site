@@ -64,6 +64,19 @@ export const flags = {
   roomScanBeta: process.env.ROOM_SCAN_ENABLED === "true",
 };
 
+/** Service navigation (spec §1) — order and naming fixed; every entry maps to an existing route. */
+export const serviceNav: { label: string; href: string }[] = [
+  { label: "Shower Restoration", href: "/services/shower-restoration" },
+  { label: "Grout Cleaning & Colour Sealing", href: "/services/grout-color-sealing" },
+  { label: "Regrouting & Caulk", href: "/services/regrouting-caulking" },
+  { label: "Natural Stone Honing & Polishing", href: "/services/marble-stone-restoration" },
+  { label: "Countertops", href: "/services/countertop-sealing" },
+  { label: "Residential Floors", href: "/services/floor-restoration" },
+  { label: "Commercial Restrooms", href: "/services/commercial-restoration" },
+  { label: "Education, Hospitality & Healthcare", href: "/commercial" },
+  { label: "Property Portfolios", href: "/commercial/property-management" },
+];
+
 export const nav = [
   { label: "Residential", href: "/residential", children: [
     { label: "Homeowners", href: "/residential" },
@@ -78,7 +91,7 @@ export const nav = [
     { label: "HOAs & Condos", href: "/commercial/hoa-condos" },
     { label: "Property Management", href: "/commercial/property-management" },
   ]},
-  { label: "Services", href: "/services/shower-restoration", children: [] as { label: string; href: string }[] },
+  { label: "Services", href: "/services/shower-restoration", children: serviceNav },
   { label: "Gallery", href: "/gallery" },
   { label: "Process", href: "/process" },
   { label: "Service Areas", href: "/service-areas" },
