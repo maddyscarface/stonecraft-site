@@ -61,9 +61,10 @@ const html = await (await fetch(BASE + "/")).text();
 ok("no gtag/fbq loaded without IDs", !html.includes("googletagmanager.com/gtag/js") && !html.includes("connect.facebook.net"));
 // Build 04 spec checks
 await page.goto(BASE + "/", { waitUntil: "networkidle" });
-ok("hero headline per spec", (await page.locator("h1").first().innerText()).replace(/\s+/g, " ").trim() === "Restore the Surfaces You Love.");
-ok("hero supporting text per spec", (await page.locator("body").innerText()).includes("Tile, grout, shower and stone restoration for homes and properties in Greater Boston and Southeast Florida."));
-ok("hero CTAs per spec", (await page.getByTestId("hero-cta").innerText()).toLowerCase().includes("get a photo assessment") && (await page.getByTestId("hero-cta-commercial").innerText()).toLowerCase().includes("commercial property services"));
+ok("hero headline per spec", (await page.locator("h1").first().innerText()).replace(/\s+/g, " ").trim() === "Tile, Grout and Stone Restoration in Greater Boston");
+ok("hero supporting text per spec", (await page.locator("body").innerText()).includes("Share photos for a written assessment, or request a commercial site walkthrough where service is available."));
+ok("region selector present", await page.getByTestId("region-selector").count() === 1);
+ok("hero CTAs per spec", (await page.getByTestId("hero-cta").innerText()).toLowerCase().includes("get a photo assessment") && (await page.getByTestId("hero-cta-commercial").innerText()).toLowerCase().includes("commercial site walkthrough"));
 ok("two journeys (residential + commercial)", (await page.getByTestId("journey-residential").count()) === 1 && (await page.getByTestId("journey-commercial").count()) === 1);
 ok("before/after slider has Illustrative badge", (await page.getByTestId("illustrative-badge").count()) >= 1);
 ok("no tel: links / placeholder phone", !(await page.content()).includes('href="tel:') && !(await page.content()).includes("000-0000"));

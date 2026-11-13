@@ -14,7 +14,7 @@ fs.mkdirSync(shots, { recursive: true });
 const results = [];
 const ok = (name, cond, detail = "") => { results.push({ name, pass: !!cond, detail }); console.log(`${cond ? "PASS" : "FAIL"}  ${name}${detail ? " — " + detail : ""}`); };
 
-const PAGES = ["/", "/boston", "/south-florida", "/boston/cambridge", "/south-florida/boca-raton", "/residential", "/renters", "/landlords", "/commercial", "/commercial/hospitals", "/commercial/universities-schools", "/commercial/hotels-hospitality", "/commercial/hoa-condos", "/commercial/property-management", "/services/shower-restoration", "/services/commercial-restoration", "/bathroom-refresh", "/free-assessment", "/commercial-site-assessment", "/gallery", "/about", "/process", "/service-areas", "/resources", "/resources/restore-or-replace-bathroom-tile", "/contact", "/thank-you", "/privacy", "/terms", "/renters/landlord-approval", "/commercial/capabilities"];
+const PAGES = ["/", "/boston", "/south-florida", "/boston/cambridge", "/south-florida/boca-raton", "/residential", "/renters", "/landlords", "/commercial", "/commercial/hospitals", "/commercial/universities-schools", "/commercial/hotels-hospitality", "/commercial/hoa-condos", "/commercial/property-management", "/services/shower-restoration", "/services/commercial-restoration", "/bathroom-refresh", "/free-assessment", "/commercial-site-assessment", "/gallery", "/about", "/process", "/service-areas", "/resources", "/resources/restore-or-replace-bathroom-tile", "/resources/grout-cleaning-vs-color-sealing", "/resources/restore-or-replace-shower-grout", "/resources/glazed-tile-and-high-gloss-finishes", "/resources/marble-etching-vs-staining", "/resources/safe-cleaning-after-restoration", "/resources/commercial-restroom-maintenance-after-restoration", "/contact", "/thank-you", "/privacy", "/terms", "/renters/landlord-approval", "/commercial/capabilities"];
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
@@ -36,6 +36,22 @@ ok("no AggregateRating schema (no fake reviews)", !/AggregateRating/.test(bosHtm
 const sm = await (await fetch(BASE + "/sitemap.xml")).text();
 ok("sitemap includes Boston cities, excludes FL pre-launch", sm.includes("/boston/newton") && !sm.includes("/south-florida/"));
 ok("robots disallows admin", (await (await fetch(BASE + "/robots.txt")).text()).includes("Disallow: /admin"));
+const llms = await (await fetch(BASE + "/llms.txt")).text();
+ok("llms.txt is a public facts index", llms.includes("# StoneCraft") && llms.includes("Not a franchise") && !llms.includes("/admin") && !llms.includes("/api/"));
+const homeHtml = await (await fetch(BASE + "/")).text();
+ok("home uses Phase 3 H1", /Tile, Grout and Stone Restoration in Greater Boston/.test(homeHtml));
+const orgLd = [...homeHtml.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1]).find((b) => b.includes("ProfessionalService") && b.includes("#organization")) || "";
+ok("home schema areaServed is live markets only", orgLd.includes("Greater Boston") && !/Palm Beach|Broward|Southeast Florida/.test(orgLd), orgLd.slice(0, 180));
+const showerHtml = await (await fetch(BASE + "/services/shower-restoration")).text();
+ok("service schema does not advertise pre-launch Florida", !/Palm Beach County, FL/.test(showerHtml) && !/Broward County, FL/.test(showerHtml));
+const iconPaths = ["/favicon.ico", "/favicon.svg", "/icon.svg", "/icon-32.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest"];
+for (const icon of iconPaths) {
+  const ir = await fetch(BASE + icon);
+  ok(`icon ${icon} returns 200`, ir.status === 200, String(ir.status));
+}
+const man = await (await fetch(BASE + "/manifest.webmanifest")).json();
+ok("web manifest has theme colour and 192/512 icons", man.theme_color === "#25292B" && (man.icons || []).some((i) => i.sizes === "192x192") && (man.icons || []).some((i) => i.sizes === "512x512"));
+
 
 async function dl() { return page.evaluate(() => (window.dataLayer || []).filter((e) => e && e.event).map((e) => ({ event: e.event, event_id: e.event_id, market: e.market }))); }
 
@@ -50,6 +66,17 @@ await page.fill('[data-testid="phone"]', "6175550101");
 await page.fill('[data-testid="zip"]', "02139");
 await page.click('[data-testid="next"]');
 await page.getByText("Shower tile & grout").click();
+await page.click('[data-testid="next"]');
+// Qualifier step (project type may already be preselected from the surface)
+await page.getByTestId("q-project_type-shower").click().catch(() => {});
+await page.getByTestId("q-size-alcove").click();
+await page.getByTestId("q-budget-1_2k").click();
+await page.getByTestId("q-start-2weeks").click();
+const pref = new Date(Date.now() + 9 * 864e5).toISOString().slice(0, 10);
+if (await page.locator('[data-testid="q-preferred_date"]').count()) {
+  await page.fill('[data-testid="q-preferred_date"]', pref);
+  await page.selectOption('[data-testid="q-preferred_window"]', "1000").catch(() => {});
+}
 await page.click('[data-testid="next"]');
 // 1x1 jpeg
 const jpg = Buffer.from("/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=", "base64");
@@ -85,7 +112,7 @@ await page.screenshot({ path: `${shots}/renters.png`, fullPage: true });
 
 // Direct API: renter strips landlord details w/o consent; duplicate is idempotent; validation errors
 const ev = `lead_qa_${Date.now()}`;
-const renterBody = { variant: "renter", firstName: "R", email: "r@example.com", phone: "6175550102", zip: "02143", contactConsent: true, eventId: ev, roommates: 3, landlordName: "Should Drop", startedAt: Date.now() - 10000, attribution: {} };
+const renterBody = { variant: "renter", firstName: "R", email: "r@example.com", phone: "6175550102", zip: "02143", contactConsent: true, approvalAcknowledged: true, eventId: ev, roommates: 3, landlordName: "Should Drop", startedAt: Date.now() - 10000, attribution: {} };
 const r1 = await fetch(BASE + "/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(renterBody) });
 const r2 = await fetch(BASE + "/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(renterBody) });
 const j2 = await r2.json();
