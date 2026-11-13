@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FinalCta, JsonLd, Section } from "@/components/blocks";
 import { articles, findArticle } from "@/config/resources";
-import { articleSchema, breadcrumbSchema, meta } from "@/lib/seo";
+import { articleSchema, breadcrumbSchema, meta, webPageSchema } from "@/lib/seo";
 
 export const dynamicParams = false;
 export function generateStaticParams() { return articles.map((a) => ({ slug: a.slug })); }
@@ -16,7 +16,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   if (!a) notFound();
   return (
     <>
-      <JsonLd data={articleSchema({ title: a.title, description: a.description, path: `/resources/${a.slug}`, date: a.date })} />
+      <JsonLd data={webPageSchema({ title: `${a.title} | StoneCraft`, description: a.description, path: `/resources/${a.slug}` })} />
+      <JsonLd data={articleSchema({ title: a.title, description: a.description, path: `/resources/${a.slug}`, date: a.date, dateModified: a.date })} />
       <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Resources", path: "/resources" }, { name: a.title, path: `/resources/${a.slug}` }])} />
       <section className="bg-hunter text-white"><div className="container-sc max-w-3xl py-14"><p className="eyebrow text-linen">{a.audience}</p><h1 className="mt-3 font-serif text-4xl leading-tight">{a.title}</h1><p className="mt-4 text-sage">{a.description}</p></div></section>
       <Section tone="white">

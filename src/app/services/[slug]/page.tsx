@@ -6,7 +6,9 @@ import { Checklist, Faq, FinalCta, Heading, JsonLd, PageHero, PriceGuide, Sectio
 import { LeadForm } from "@/components/LeadForm";
 import { TrackView } from "@/components/TrackView";
 import { findService, services, publicPriceRanges, PRICE_RANGES_OWNER_REVIEWED } from "@/config/services";
-import { breadcrumbSchema, faqSchema, meta, serviceSchema } from "@/lib/seo";
+import { articles } from "@/config/resources";
+import { liveAreaServed } from "@/config/markets";
+import { breadcrumbSchema, faqSchema, meta, serviceSchema, webPageSchema } from "@/lib/seo";
 
 export const dynamicParams = false;
 export function generateStaticParams() { return services.map((s) => ({ slug: s.slug })); }
@@ -22,7 +24,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const range = s.priceRangeKey && PRICE_RANGES_OWNER_REVIEWED ? publicPriceRanges[s.priceRangeKey] : undefined;
   return (
     <>
-      <JsonLd data={serviceSchema({ name: s.name, description: s.intro, path: `/services/${s.slug}`, areaServed: ["Greater Boston, MA", "Palm Beach County, FL", "Broward County, FL"] })} />
+      <JsonLd data={webPageSchema({ title: s.seoTitle, description: s.metaDescription, path: `/services/${s.slug}` })} />
+      <JsonLd data={serviceSchema({ name: s.name, description: s.intro, path: `/services/${s.slug}`, areaServed: liveAreaServed() })} />
       <JsonLd data={faqSchema(s.faq)} />
       <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Services", path: "/services/shower-restoration" }, { name: s.name, path: `/services/${s.slug}` }])} />
       <TrackView event="view_service" params={{ service: s.slug }} meta="ViewContent" />
@@ -46,6 +49,20 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       {!commercial && <Section tone="white" id="get-started"><div className="grid gap-10 md:grid-cols-[1fr_1.4fr]"><Heading eyebrow="Free assessment" title={`Send photos of your ${s.name.toLowerCase()} project`} sub="We'll reply with what's possible and an honest estimate." /><LeadForm variant="residential" sourcePage={`/services/${s.slug}`} /></div></Section>}
       {commercial && <Section tone="white"><PriceGuide show={false} /><Link href="/commercial" className="btn btn-hunter mt-6">See commercial programs</Link></Section>}
       <Section><Heading center eyebrow="Questions" title={`${s.name} FAQ`} /><Faq items={s.faq} /></Section>
+      <Section tone="white">
+        <Heading eyebrow="Guides" title="Read before you decide" sub="Material-specific explanations. Technical choices still depend on a technician's review and the product instructions." />
+        <ul className="grid gap-4 md:grid-cols-3">{articles.filter((a) => {
+          const map: Record<string, string[]> = {
+            "shower-restoration": ["restore-or-replace-shower-grout", "safe-cleaning-after-restoration", "grout-cleaning-vs-color-sealing"],
+            "tile-grout-restoration": ["grout-cleaning-vs-color-sealing", "glazed-tile-and-high-gloss-finishes", "restore-or-replace-bathroom-tile"],
+            "grout-color-sealing": ["grout-cleaning-vs-color-sealing", "glazed-tile-and-high-gloss-finishes", "safe-cleaning-after-restoration"],
+            "regrouting-caulking": ["restore-or-replace-shower-grout", "safe-cleaning-after-restoration", "restore-or-replace-bathroom-tile"],
+            "marble-stone-restoration": ["marble-etching-vs-staining", "safe-cleaning-after-restoration", "restore-or-replace-bathroom-tile"],
+            "commercial-restoration": ["commercial-restroom-tile-maintenance-planning", "commercial-restroom-maintenance-after-restoration", "glazed-tile-and-high-gloss-finishes"],
+          };
+          return (map[s.slug] ?? ["grout-cleaning-vs-color-sealing", "restore-or-replace-bathroom-tile", "safe-cleaning-after-restoration"]).includes(a.slug);
+        }).map((a) => <li key={a.slug}><Link href={`/resources/${a.slug}`} className="block rounded-lg bg-cream p-5 shadow-card transition hover:-translate-y-0.5"><h3 className="font-serif text-xl leading-snug">{a.title}</h3><p className="mt-2 text-sm text-basalt/70">{a.description}</p></Link></li>)}</ul>
+      </Section>
       <FinalCta commercial={commercial} />
     </>
   );

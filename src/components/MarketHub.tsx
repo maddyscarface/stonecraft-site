@@ -5,7 +5,7 @@ import { Faq, FinalCta, Heading, JsonLd, PageHero, PriceGuide, ProcessSteps, Sec
 import { LeadForm } from "@/components/LeadForm";
 import { getMarket, markets } from "@/config/markets";
 import { citiesFor, coreCities } from "@/config/cities";
-import { businessSchema, faqSchema, meta } from "@/lib/seo";
+import { businessSchema, faqSchema, meta, webPageSchema } from "@/lib/seo";
 
 
 export function hubMetadata(slug: string) {
@@ -20,13 +20,14 @@ export function MarketHub({ slug }: { slug: string }) {
   const all = citiesFor(m.id);
   const core = coreCities(m.id);
   const faq = [
-    { q: `Which parts of ${m.name} do you serve?`, a: `${m.serviceAreaLabel}. If your town isn't listed, send your ZIP code and we'll confirm.` },
+    { q: `Which parts of ${m.name} do you serve?`, a: m.status === "pre-launch" ? `${m.statusNote ?? "Scheduling availability is being confirmed."} ${m.serviceAreaLabel} describes the area we intend to serve if and when this market is approved — it is not a claim that coverage is already live.` : `${m.serviceAreaLabel}. If your town isn't listed, send your ZIP code and we'll confirm.` },
     { q: "Do you have a showroom or office I can visit?", a: "No. We're a service-area business: we come to you, and assessments start with photos." },
     { q: "How is pricing set?", a: m.showPriceRanges ? "From your photos and, if needed, a short visit. Guidance ranges are on this page; your written quote is the price." : "From your photos and, if needed, a short visit. You'll receive a written scope and price before anything is booked." },
   ];
   return (
     <>
-      <JsonLd data={businessSchema(m, all.map((c) => c.name))} />
+      <JsonLd data={webPageSchema({ title: `Tile, Grout & Stone Restoration in ${m.name} | ${m.brandName}`, description: `Shower, tile, grout, marble and stone restoration for homes, rentals and commercial properties across ${m.name}.`, path: `/${m.slug}` })} />
+      {m.status === "live" && <JsonLd data={businessSchema(m, all.map((c) => c.name))} />}
       <JsonLd data={faqSchema(faq)} />
       <PageHero image={marketImage[m.id]} eyebrow={m.brandName} title={`Tile, Grout & Stone Restoration Across ${m.name}`} sub={`Professional restoration for homeowners, renters, landlords and commercial facilities. ${m.serviceAreaLabel}.`} primary={{ label: "Get a Photo Assessment", href: "#get-started" }} secondary={{ label: "Commercial Property Services", href: "/commercial" }} note={m.status === "pre-launch" ? m.statusNote : undefined} />
       <TrustBar />
