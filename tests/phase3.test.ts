@@ -5,6 +5,7 @@ import { articles } from "@/config/resources";
 import { markets, liveAreaServed, liveMarkets } from "@/config/markets";
 import { services } from "@/config/services";
 import { seoInventory } from "@/config/seo-inventory";
+import { marketBannerIntro } from "@/components/MarketStatusBanner";
 import { site } from "@/config/site";
 import {
   abs,
@@ -157,5 +158,29 @@ describe("Phase 3 brand favicon set", () => {
     expect(readFileSync(path.join(pub, "icon.svg"), "utf8")).toContain("#B89A70");
     const ico = Buffer.from(readFileSync(path.join(pub, "favicon.ico.b64"), "utf8").replace(/\s+/g, ""), "base64");
     expect(ico.readUInt16LE(4)).toBe(3); // ICO image count: 16, 32, 48
+  });
+});
+
+describe("Phase 3 inventory and banner", () => {
+  it("records H1, metadata, schema, CTA, region and evidence for every inventory route", () => {
+    expect(seoInventory.length).toBeGreaterThanOrEqual(20);
+    for (const row of seoInventory) {
+      expect(row.h1.length).toBeGreaterThan(8);
+      expect(row.title.length).toBeGreaterThan(8);
+      expect(row.description.length).toBeGreaterThan(40);
+      expect(row.schema.length).toBeGreaterThan(0);
+      expect(row.cta.href.startsWith("/")).toBe(true);
+      expect(row.evidence.length).toBeGreaterThan(10);
+    }
+    expect(seoInventory.some((r) => r.path === "/bathroom-refresh")).toBe(true);
+    expect(seoInventory.some((r) => r.path === "/commercial/hoa-condos")).toBe(true);
+  });
+
+  it("does not duplicate the Send photos sentence in the pre-launch banner", () => {
+    const note = "We're confirming scheduling availability in Southeast Florida. Send photos and we'll tell you when we can serve your address.";
+    const intro = marketBannerIntro(note, "Southeast Florida");
+    expect(intro).toBe("We're confirming scheduling availability in Southeast Florida.");
+    const rendered = `${intro} Send photos and we'll tell you when we can serve your address. Greater Boston is currently served.`;
+    expect(rendered.match(/Send photos/g)?.length).toBe(1);
   });
 });

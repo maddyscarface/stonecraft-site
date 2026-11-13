@@ -100,9 +100,9 @@ export function Header({ nav, markets }: { nav: NavItem[]; markets: PublicMarket
 
       <div className="no-print fixed inset-x-0 bottom-0 z-40 grid grid-cols-2 border-t border-white/10 bg-basalt md:hidden">
         {m.phoneE164
-          ? <a href={`tel:${m.phoneE164}`} onClick={() => callClick("mobile_bar")} className="flex items-center justify-center gap-2 py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-bone"><Phone size={15} />Call</a>
-          : <a href={`mailto:${m.email}`} onClick={() => mailClick("mobile_bar")} className="flex items-center justify-center gap-2 py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-bone"><Mail size={15} />Email us</a>}
-        <Link href="/free-assessment" onClick={() => track("cta_click", { location: "mobile_bar" })} className="flex items-center justify-center gap-2 bg-bronze-light py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-basalt"><Camera size={15} />Send Photos</Link>
+          ? <a href={`tel:${m.phoneE164}`} onClick={() => callClick("mobile_bar")} className="flex min-h-11 items-center justify-center gap-2 py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-bone"><Phone size={15} />Call</a>
+          : <a href={`mailto:${m.email}`} onClick={() => mailClick("mobile_bar")} className="flex min-h-11 items-center justify-center gap-2 py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-bone"><Mail size={15} />Email us</a>}
+        <Link href="/free-assessment" onClick={() => track("cta_click", { location: "mobile_bar" })} className="flex min-h-11 items-center justify-center gap-2 bg-bronze-light py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-basalt"><Camera size={15} />Send Photos</Link>
       </div>
     </>
   );
