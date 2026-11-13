@@ -70,3 +70,18 @@ Tier 1: Apple Business Connect, Bing Places, Yelp, Facebook page, Nextdoor busin
 - No incentives for reviews; no employee/family reviews; no review "gating".
 - Respond to every review within 2 business days.
 - Display reviews on site only after `flags.showReviews=true` using real, attributable reviews (name/initial + town with permission) — never edited to change meaning.
+
+
+## Phase 3 published guides (2026-11-13)
+In addition to the three launch articles, the following educational guides are now live. Technical claims remain general education pending technician and product-instruction review; they do not prescribe a universal chemical.
+
+| Slug | Title | Status |
+|---|---|---|
+| grout-cleaning-vs-color-sealing | Grout Cleaning vs Colour Sealing | Published |
+| restore-or-replace-shower-grout | Restore or Replace Shower Grout | Published |
+| glazed-tile-and-high-gloss-finishes | High-gloss finishes on glazed tile | Published |
+| marble-etching-vs-staining | Marble etching vs staining | Published |
+| safe-cleaning-after-restoration | Safe cleaning after restoration | Published |
+| commercial-restroom-maintenance-after-restoration | Commercial restroom maintenance | Published |
+
+Florida market pages remain **noindex** and are excluded from the sitemap until `MARKET_FL_STATUS=live` is set after owner sign-off. `areaServed` in Organization/Service schema lists live markets only (currently Greater Boston). Canonicals use `NEXT_PUBLIC_CANONICAL_ORIGIN` (default intended domain `https://stonecraftpros.com`) and never a Vercel staging host. Optional `/llms.txt` is a public facts index, not a ranking guarantee.
