@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { abs } from "@/lib/seo";
+import { abs, CONTENT_UPDATED } from "@/lib/seo";
 import { markets } from "@/config/markets";
 import { coreCities } from "@/config/cities";
 import { services } from "@/config/services";
@@ -8,13 +8,38 @@ import { articles } from "@/config/resources";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const live = new Set(markets.filter((m) => m.status === "live").map((m) => m.id));
-  const paths = [
-    "/", "/residential", "/renters", "/renters/landlord-approval", "/landlords", "/commercial", "/commercial/capabilities", "/bathroom-refresh", "/free-assessment", "/commercial-site-assessment", "/gallery", "/about", "/process", "/service-areas", "/resources", "/contact", "/privacy", "/terms",
-    ...commercialSegments.map((s) => s.path),
-    ...services.map((s) => `/services/${s.slug}`),
-    ...articles.map((a) => `/resources/${a.slug}`),
+  const paths: { path: string; lastModified: string; priority: number }[] = [
+    { path: "/", lastModified: CONTENT_UPDATED, priority: 1 },
+    { path: "/residential", lastModified: CONTENT_UPDATED, priority: 0.8 },
+    { path: "/renters", lastModified: "2026-11-02", priority: 0.7 },
+    { path: "/renters/landlord-approval", lastModified: "2026-11-02", priority: 0.6 },
+    { path: "/landlords", lastModified: "2026-11-02", priority: 0.7 },
+    { path: "/commercial", lastModified: CONTENT_UPDATED, priority: 0.8 },
+    { path: "/commercial/capabilities", lastModified: "2026-11-02", priority: 0.6 },
+    { path: "/bathroom-refresh", lastModified: "2026-11-02", priority: 0.7 },
+    { path: "/free-assessment", lastModified: CONTENT_UPDATED, priority: 0.9 },
+    { path: "/commercial-site-assessment", lastModified: CONTENT_UPDATED, priority: 0.9 },
+    { path: "/gallery", lastModified: "2026-11-02", priority: 0.5 },
+    { path: "/about", lastModified: CONTENT_UPDATED, priority: 0.6 },
+    { path: "/process", lastModified: "2026-11-02", priority: 0.6 },
+    { path: "/service-areas", lastModified: CONTENT_UPDATED, priority: 0.7 },
+    { path: "/resources", lastModified: CONTENT_UPDATED, priority: 0.7 },
+    { path: "/contact", lastModified: "2026-11-02", priority: 0.6 },
+    { path: "/privacy", lastModified: "2026-11-02", priority: 0.3 },
+    { path: "/terms", lastModified: "2026-11-02", priority: 0.3 },
+    ...commercialSegments.map((s) => ({ path: s.path, lastModified: CONTENT_UPDATED, priority: 0.7 })),
+    ...services.map((s) => ({ path: `/services/${s.slug}`, lastModified: CONTENT_UPDATED, priority: 0.8 })),
+    ...articles.map((a) => ({ path: `/resources/${a.slug}`, lastModified: a.date, priority: 0.7 })),
     // Pre-launch markets are noindexed and excluded from the sitemap.
-    ...markets.filter((m) => live.has(m.id)).flatMap((m) => [`/${m.slug}`, ...coreCities(m.id).map((c) => `/${m.slug}/${c.slug}`)]),
+    ...markets.filter((m) => live.has(m.id)).flatMap((m) => [
+      { path: `/${m.slug}`, lastModified: CONTENT_UPDATED, priority: 0.8 },
+      ...coreCities(m.id).map((c) => ({ path: `/${m.slug}/${c.slug}`, lastModified: CONTENT_UPDATED, priority: 0.7 })),
+    ]),
   ];
-  return paths.map((p) => ({ url: abs(p), lastModified: new Date("2026-11-02"), changeFrequency: "monthly", priority: p === "/" ? 1 : p.includes("assessment") ? 0.9 : 0.7 }));
+  return paths.map((p) => ({
+    url: abs(p.path),
+    lastModified: new Date(p.lastModified),
+    changeFrequency: p.path === "/" ? "weekly" : "monthly",
+    priority: p.priority,
+  }));
 }
