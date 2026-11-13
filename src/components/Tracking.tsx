@@ -59,8 +59,8 @@ export function Tracking() {
         <div role="dialog" aria-label="Privacy choices" className="no-print fixed bottom-20 left-3 right-3 z-50 mx-auto max-w-xl rounded-md border border-hunter-light bg-hunter p-4 text-sm text-cream shadow-premium md:bottom-4">
           <p className="mb-3">We use cookies to measure site performance and our advertising. You can opt out of advertising cookies at any time. <a className="underline" href="/privacy">Privacy policy</a></p>
           <div className="flex gap-2">
-            <button className="btn btn-linen !min-h-9 !px-4 text-sm" onClick={() => { setConsent({ analytics_storage: "granted", ad_storage: "granted", ad_user_data: "granted", ad_personalization: "granted" }); setShowBanner(false); }}>Accept</button>
-            <button className="btn btn-ghost !min-h-9 !px-4 text-sm" onClick={() => { setConsent({ analytics_storage: "granted", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" }); setShowBanner(false); }}>Decline advertising</button>
+            <button className="btn btn-linen !min-h-11 !px-4 text-sm" onClick={() => { setConsent({ analytics_storage: "granted", ad_storage: "granted", ad_user_data: "granted", ad_personalization: "granted" }); setShowBanner(false); }}>Accept</button>
+            <button className="btn btn-ghost !min-h-11 !px-4 text-sm" onClick={() => { setConsent({ analytics_storage: "granted", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" }); setShowBanner(false); }}>Decline advertising</button>
           </div>
         </div>
       )}

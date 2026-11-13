@@ -12,10 +12,10 @@ type NavItem = { label: string; href: string; children?: { label: string; href: 
 
 export function Wordmark({ light = true, suffix }: { light?: boolean; suffix?: string }) {
   return (
-    <span className="flex items-center gap-3 whitespace-nowrap">
+    <span className="flex min-w-0 items-center gap-2 sm:gap-3">
       <Monogram light={light} size={26} />
       <span className="flex flex-col leading-none">
-        <span className={`font-serif text-[22px] font-semibold uppercase tracking-[0.2em] md:text-[24px] ${light ? "text-bone" : "text-basalt"}`}>Stonecraft</span>
+        <span className={`font-serif text-[20px] font-semibold uppercase tracking-[0.14em] sm:text-[22px] sm:tracking-[0.2em] md:text-[24px] ${light ? "text-bone" : "text-basalt"}`}>Stonecraft</span>
         {suffix && <span className={`mt-1 font-sans text-[9px] font-bold uppercase tracking-[0.34em] ${light ? "text-bronze-light" : "text-bronze"}`}>{suffix}</span>}
       </span>
     </span>
@@ -40,7 +40,7 @@ export function Header({ nav, markets }: { nav: NavItem[]; markets: PublicMarket
             <div className="flex items-center border border-white/15" role="group" aria-label="Choose your area">
               {markets.map((x) => (
                 <button key={x.id} onClick={() => setMarket(x.id)} aria-pressed={x.id === market}
-                  className={`px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] transition ${x.id === market ? "bg-bronze-light text-basalt" : "text-sage hover:text-bone"}`}>{x.shortName}</button>
+                  className={`min-h-11 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] transition ${x.id === market ? "bg-bronze-light text-basalt" : "text-sage hover:text-bone"}`}>{x.shortName}</button>
               ))}
             </div>
           </div>
@@ -49,7 +49,7 @@ export function Header({ nav, markets }: { nav: NavItem[]; markets: PublicMarket
       <header className="no-print sticky top-0 z-40 border-b border-white/10 bg-basalt/95 text-white backdrop-blur supports-[backdrop-filter]:bg-basalt/85">
         <div className="container-sc flex h-[68px] items-center justify-between gap-6 md:h-[78px]">
           <Link href="/" aria-label="StoneCraft home"><Wordmark suffix={m.id === "boston" ? "Greater Boston" : "Southeast Florida"} /></Link>
-          <nav className="hidden items-center lg:flex" aria-label="Main">
+          <nav className="hidden items-center xl:flex" aria-label="Main">
             {nav.map((item) => item.children?.length ? (
               <div key={item.label} className="group relative">
                 <Link href={item.href} className="flex items-center gap-1 whitespace-nowrap px-3 py-2 text-[13px] font-medium tracking-wide text-bone/85 hover:text-bronze-light">{item.label}<ChevronDown size={13} className="opacity-60" /></Link>
@@ -61,14 +61,14 @@ export function Header({ nav, markets }: { nav: NavItem[]; markets: PublicMarket
           </nav>
           <div className="flex items-center gap-3">
             <Link href="/free-assessment" className="btn btn-linen hidden !min-h-11 whitespace-nowrap !px-5 sm:inline-flex" onClick={() => track("cta_click", { location: "header" })}>Free Assessment <ArrowRight size={15} /></Link>
-            <button className="p-1 lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu"><Menu className="text-bone" /></button>
+            <button className="grid h-11 w-11 place-items-center xl:hidden" onClick={() => setOpen(true)} aria-label="Open menu"><Menu className="text-bone" /></button>
           </div>
         </div>
       </header>
 
       {open && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-basalt p-6 text-white lg:hidden" role="dialog" aria-modal="true">
-          <div className="mb-8 flex items-center justify-between"><Wordmark /><button onClick={() => setOpen(false)} aria-label="Close menu"><X className="text-bone" /></button></div>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-basalt p-6 text-white xl:hidden" role="dialog" aria-modal="true">
+          <div className="mb-8 flex items-center justify-between"><Wordmark /><button onClick={() => setOpen(false)} aria-label="Close menu" className="grid h-11 w-11 place-items-center"><X className="text-bone" /></button></div>
           {nav.map((item) => (
             <div key={item.label} className="border-b border-white/10 py-3">
               <Link href={item.href} onClick={() => setOpen(false)} className="block font-serif text-2xl">{item.label}</Link>
