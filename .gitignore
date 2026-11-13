@@ -8,6 +8,11 @@ public/images/*.webp
 
 # restored from *.b64 at build time
 public/og.png
+public/favicon.ico
+public/icon-32.png
+public/icon-192.png
+public/icon-512.png
+public/apple-touch-icon.png
 public/downloads/*.docx
 public/downloads/*.pdf
 deploy-bundle.tgz
