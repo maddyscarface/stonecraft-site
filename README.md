@@ -4,6 +4,14 @@ Greater Boston and Southeast Florida tile, grout, shower and natural stone resto
 
 **Status:** built and tested in sandbox. No live accounts connected. Florida is `pre-launch` (noindexed) pending franchise counsel — read **docs/15** first.
 
+
+## Preview and hosting package
+
+- **Staging / review:** https://stonecraft-staging.vercel.app (noindex; production is unchanged at https://stonecraft-site-rho.vercel.app)
+- **Run locally:** `npm ci --include=dev && cp .env.example .env.local && npm run dev`
+- **Quality check:** `npm run typecheck && npm test && npm run build`
+- **Host this build:** see [HOSTING.md](HOSTING.md) for Vercel upload, Netlify, a generic Node/pm2 VPS, and cPanel. A static HTML export is not supported — the site has API routes.
+
 ## What's here
 | Area | Location |
 |---|---|
