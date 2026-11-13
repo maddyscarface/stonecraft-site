@@ -70,8 +70,11 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 70; pointer-event
   font-family: var(--font-sans);
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+@media (min-width: 640px) {
+  .eyebrow { letter-spacing: 0.24em; }
 }
 .rule-bronze { display: inline-block; width: 2.5rem; height: 1px; background: var(--color-bronze); vertical-align: middle; margin-right: .75rem; }
 
@@ -114,7 +117,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 70; pointer-event
 
 /* Photo treatments */
 .photo-shade { background: linear-gradient(180deg, rgba(37,41,43,.15) 0%, rgba(37,41,43,.55) 55%, rgba(37,41,43,.88) 100%); }
-.photo-shade-side { background: linear-gradient(90deg, rgba(37,41,43,.92) 0%, rgba(37,41,43,.72) 45%, rgba(37,41,43,.2) 100%); }
+.photo-shade-side { background: linear-gradient(90deg, rgba(37,41,43,.84) 0%, rgba(37,41,43,.58) 48%, rgba(37,41,43,.18) 100%); }
 .stock-note { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: rgba(238,233,225,.75); }
 }
 

@@ -47,8 +47,8 @@ export default function HomePage() {
       {/* 1 Hero */}
       <section className="relative isolate overflow-hidden bg-basalt text-white">
         <div className="absolute inset-0 -z-10"><Photo k="vanity-dark-marble" priority sizes="100vw" /><div className="photo-shade-side absolute inset-0" /></div>
-        <div className="container-sc py-24 md:py-36">
-          <p className="eyebrow mb-7 text-bronze-light"><span className="rule-bronze" />StoneCraft · Restore more. Replace less.</p>
+        <div className="container-sc pt-16 pb-28 md:py-36">
+          <p className="eyebrow mb-7 text-bronze-light"><span className="rule-bronze" /><span className="inline-block">StoneCraft</span> · <span className="inline-block">Restore more. Replace less.</span></p>
           <h1 className="max-w-4xl font-serif text-[36px] leading-[1.02] text-bone sm:text-[48px] md:text-[72px]">Tile, Grout and Stone Restoration in Greater Boston</h1>
           <p className="mt-8 max-w-2xl text-lg leading-relaxed text-bone/85">StoneCraft restores showers, grout, tile and natural stone for homeowners and managed properties. Share photos for a written assessment, or request a commercial site walkthrough where service is available.</p>
           <div className="mt-10 flex flex-wrap gap-3">
@@ -62,7 +62,7 @@ export default function HomePage() {
             ))}
           </dl>
         </div>
-        <span className="stock-note absolute bottom-3 right-4">Illustrative photo</span>
+        <span className="stock-note absolute bottom-20 right-4 md:bottom-3">Illustrative photo</span>
       </section>
 
       {/* Two journeys (spec §1): residential photo estimate vs commercial walkthrough / program */}

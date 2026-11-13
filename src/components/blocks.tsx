@@ -39,13 +39,13 @@ export function PageHero({ eyebrow, title, sub, primary, secondary, children, no
       ) : (
         <div className="absolute inset-0 -z-10 opacity-[0.13] mix-blend-luminosity"><Photo k="texture-marble-veined" sizes="100vw" /></div>
       )}
-      <div className={`container-sc grid gap-12 md:items-center ${children ? "md:grid-cols-[1.25fr_1fr]" : ""} ${image ? "py-24 md:py-32" : "py-20 md:py-24"}`}>
+      <div className={`container-sc grid gap-12 md:items-center ${children ? "md:grid-cols-[1.25fr_1fr]" : ""} ${image ? "pt-16 pb-28 md:py-32" : "pt-14 pb-24 md:py-24"}`}>
         <div className="max-w-3xl">
           {eyebrow && <p className="eyebrow mb-6 text-bronze-light"><span className="rule-bronze" />{eyebrow}</p>}
-          <h1 className="font-serif text-[42px] leading-[1.03] text-bone md:text-[64px]">{title}</h1>
-          {sub && <p className="mt-6 max-w-2xl text-lg leading-relaxed text-bone/75">{sub}</p>}
+          <h1 className="font-serif text-[34px] leading-[1.05] text-bone sm:text-[42px] md:text-[64px]">{title}</h1>
+          {sub && <p className="mt-5 max-w-2xl text-base leading-relaxed text-bone/80 md:mt-6 md:text-lg">{sub}</p>}
           {(primary || secondary) && (
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-3 md:mt-10">
               {primary && <Link href={primary.href} className="btn btn-linen">{primary.label} <ArrowRight size={15} /></Link>}
               {secondary && <Link href={secondary.href} className="btn btn-ghost">{secondary.label}</Link>}
             </div>
@@ -54,7 +54,7 @@ export function PageHero({ eyebrow, title, sub, primary, secondary, children, no
         </div>
         {children && <div>{children}</div>}
       </div>
-      {image && <span className="stock-note absolute bottom-3 right-4">Illustrative photo</span>}
+      {image && <span className="stock-note absolute bottom-20 right-4 md:bottom-3">Illustrative photo</span>}
     </section>
   );
 }
