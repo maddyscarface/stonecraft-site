@@ -7,30 +7,56 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Tracking } from "@/components/Tracking";
 import { MarketProvider } from "@/components/MarketContext";
-import { nav, site } from "@/config/site";
+import { MarketStatusBanner } from "@/components/MarketStatusBanner";
+import { JsonLd } from "@/components/blocks";
+import { nav } from "@/config/site";
 import { markets } from "@/config/markets";
-
+import { canonicalOrigin, isNoindexEnv, organizationSchema, websiteSchema } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(site.primaryDomain),
-  title: { default: "StoneCraft — Tile, Grout & Stone Restoration", template: "%s" },
-  description: site.supporting,
-  icons: { icon: "/favicon.svg" },
-  ...(process.env.SITE_NOINDEX === "true" || process.env.VERCEL_ENV === "preview" ? { robots: { index: false, follow: false } } : {}),
+  metadataBase: new URL(canonicalOrigin()),
+  title: { default: "Tile & Grout Restoration in Boston | StoneCraft", template: "%s" },
+  description: "Restore showers, tile, grout and natural stone in Greater Boston. Submit photos for a restoration assessment.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "16x16 32x32 48x48" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: "/favicon.ico",
+  },
+  manifest: "/manifest.webmanifest",
+  robots: isNoindexEnv() ? { index: false, follow: false } : { index: true, follow: true },
 };
 
 export const viewport: Viewport = { themeColor: "#25292B", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const navWithServices = nav;
-  const pub = markets.map((m) => ({ id: m.id, shortName: m.shortName, phoneE164: m.phoneE164, phoneDisplay: m.phoneDisplay, email: m.email }));
+  const pub = markets.map((m) => ({
+    id: m.id,
+    slug: m.slug,
+    shortName: m.shortName,
+    name: m.name,
+    phoneE164: m.phoneE164,
+    phoneDisplay: m.phoneDisplay,
+    email: m.email,
+    status: m.status,
+    statusNote: m.statusNote,
+  }));
   return (
     <html lang="en">
       <body className="font-sans antialiased">
+        <JsonLd data={organizationSchema()} />
+        <JsonLd data={websiteSchema()} />
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:bg-linen focus:p-2">Skip to content</a>
         <MarketProvider>
           <Tracking />
-          <Header nav={navWithServices} markets={pub} />
+          <Header nav={nav} markets={pub} />
+          <MarketStatusBanner markets={pub} />
           <main id="main">{children}</main>
           <Footer />
         </MarketProvider>
