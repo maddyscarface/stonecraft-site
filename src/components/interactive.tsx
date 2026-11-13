@@ -33,7 +33,7 @@ export function BeforeAfter({ before, after, alt, illustration }: { before?: str
       <div className="pointer-events-none absolute inset-y-0" style={{ left: `${pos}%` }}><div className="h-full w-0.5 -translate-x-1/2 bg-linen" /><div className="absolute top-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-hunter bg-linen" /></div>
       <span className="absolute bottom-3 left-3 rounded bg-hunter px-2 py-1 text-xs font-semibold text-white">Before</span>
       <span className="absolute bottom-3 right-3 rounded bg-linen px-2 py-1 text-xs font-semibold text-hunter">After</span>
-      {illustration && <span className="absolute left-3 top-3 rounded bg-white/90 px-2 py-1 text-[11px] font-medium text-hunter">Illustration — not a customer project</span>}
+      {illustration && <span className="absolute left-3 top-3 rounded bg-white/90 px-2 py-1 text-[12px] font-medium text-hunter">Illustration — not a customer project</span>}
       <input type="range" min={0} max={100} value={pos} onChange={(e) => setPos(Number(e.target.value))} aria-label="Compare before and after" className="absolute inset-0 h-full w-full cursor-ew-resize opacity-0" />
     </figure>
   );
@@ -167,7 +167,7 @@ export function MacroCompare({ pairs, dark }: { pairs: { id: string; label: stri
       <div role="tablist" aria-label="Surface detail" className="mb-5 flex flex-wrap gap-2">
         {pairs.map((x, n) => (
           <button key={x.id} role="tab" aria-selected={n === i} type="button" onClick={() => { setI(n); setPos(50); }}
-            className={`border px-3.5 py-2 text-[11px] font-bold uppercase tracking-[.16em] transition ${n === i ? (dark ? "border-bronze-light bg-bronze-light text-basalt" : "border-basalt bg-basalt text-bone") : (dark ? "border-white/25 text-bone/80 hover:border-bone" : "border-basalt/20 text-basalt/75 hover:border-basalt")}`}>
+            className={`border min-h-11 px-3.5 py-2 text-[12px] font-bold uppercase tracking-[.16em] transition ${n === i ? (dark ? "border-bronze-light bg-bronze-light text-basalt" : "border-basalt bg-basalt text-bone") : (dark ? "border-white/25 text-bone/80 hover:border-bone" : "border-basalt/20 text-basalt/75 hover:border-basalt")}`}>
             {x.label}
           </button>
         ))}
@@ -185,9 +185,9 @@ export function MacroCompare({ pairs, dark }: { pairs: { id: string; label: stri
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden><path d="M9 6l-6 6 6 6M15 6l6 6-6 6" /></svg>
           </div>
         </div>
-        <span className="absolute left-3 top-3 bg-bone/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.18em] text-basalt" data-testid="illustrative-badge">Illustrative</span>
-        <span className="absolute bottom-3 left-3 bg-basalt/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.18em] text-bone">Before · simulated</span>
-        <span className="absolute bottom-3 right-3 bg-bronze-light px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.18em] text-basalt">After</span>
+        <span className="absolute left-3 top-3 bg-bone/95 px-2.5 py-1 text-[12px] font-bold uppercase tracking-[.18em] text-basalt" data-testid="illustrative-badge">Illustrative</span>
+        <span className="absolute bottom-3 left-3 bg-basalt/85 px-2.5 py-1 text-[12px] font-bold uppercase tracking-[.18em] text-bone">Before · simulated</span>
+        <span className="absolute bottom-3 right-3 bg-bronze-light px-2.5 py-1 text-[12px] font-bold uppercase tracking-[.18em] text-basalt">After</span>
         <input type="range" min={0} max={100} value={pos} onChange={(e) => setPos(Number(e.target.value))} aria-label={`Compare before and after: ${p.label}`} className="absolute inset-0 h-full w-full cursor-ew-resize opacity-0" />
       </figure>
       <figcaption className={`mt-3 flex flex-wrap items-baseline justify-between gap-2 text-xs ${dark ? "text-bone/65" : "text-basalt/65"}`}>
