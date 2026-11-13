@@ -45,7 +45,7 @@ export const segments: Segment[] = [
       { q: "Will there be dust or demolition?", a: "Restoration is not demolition. Some steps—like removing old grout or honing stone—create limited dust or slurry, which we contain and clean up." },
     ],
     seoTitle: "Tile, Grout & Stone Restoration for Homeowners | StoneCraft",
-    metaDescription: "Restore showers, tile, grout and marble without a remodel. Free photo assessment for homeowners in Greater Boston and Southeast Florida.",
+    metaDescription: "Restore showers, tile, grout and marble without a remodel. Free photo assessment for homeowners in Greater Boston.",
   },
   {
     id: "renters", path: "/renters", label: "Renters", audience: "Renters and roommates",
@@ -115,8 +115,8 @@ export const segments: Segment[] = [
       { q: "Do you work nights and weekends?", a: "Yes, when the scope calls for it. Work windows are set in the proposal." },
       { q: "Can you meet vendor onboarding requirements?", a: "We'll complete your vendor packet. Insurance limits and any background-check requirements are confirmed during scoping. (VERIFY limits before quoting.)" },
     ],
-    seoTitle: "Commercial Tile, Grout & Stone Restoration | StoneCraft",
-    metaDescription: "Documented, scheduled hard-surface restoration for hospitals, universities, hotels, HOAs and property managers in Greater Boston and Southeast Florida.",
+    seoTitle: "Commercial Tile & Grout Restoration | StoneCraft",
+    metaDescription: "Commercial tile, grout and stone restoration for managed properties. Request a scoped walkthrough and service plan.",
   },
   {
     id: "hospitals", path: "/commercial/hospitals", label: "Hospitals & Healthcare", audience: "Hospital facility directors, environmental services and healthcare operations",

@@ -41,8 +41,8 @@ export const services: Service[] = [
       { q: "Will the grout look new?", a: "Colour sealing gives grout a uniform colour and a protective coating. Results depend on the grout's condition, which is why we review photos first." },
       { q: "What if you find a problem behind the tile?", a: "We stop and show you. If the wall needs repair or replacement, we'll tell you plainly rather than covering it up." },
     ],
-    seoTitle: "Shower Restoration — Grout, Caulk & Tile Renewal | StoneCraft",
-    metaDescription: "Professional shower restoration: deep cleaning, grout repair, new caulk and sealing. Free photo assessment in Greater Boston and Southeast Florida.",
+    seoTitle: "Shower Restoration & Recaulking | StoneCraft",
+    metaDescription: "Shower grout cleaning, repair, sealing and recaulking with a photo-first assessment in eligible service areas.",
     category: "both",
   },
   {
@@ -116,8 +116,8 @@ export const services: Service[] = [
       { q: "Can etching be removed?", a: "Light to moderate etching usually can, through honing and polishing. Deep damage may improve without disappearing entirely—we'll set expectations from photos and a test area." },
       { q: "Is marble restoration safe for my home?", a: "We use stone-safe products and contain slurry and water. We'll protect adjacent surfaces." },
     ],
-    seoTitle: "Marble & Natural Stone Restoration — Honing, Polishing, Sealing | StoneCraft",
-    metaDescription: "Remove etching and restore shine to marble, travertine and limestone with stone-safe honing, polishing and sealing.",
+    seoTitle: "Marble & Stone Restoration | StoneCraft",
+    metaDescription: "Explore marble, countertop and natural stone restoration for homes and properties. Request a photo assessment.",
     category: "both",
   },
   {
@@ -166,8 +166,8 @@ export const services: Service[] = [
       { q: "Do you provide a certificate of insurance?", a: "We provide a COI naming your organisation on request as part of vendor onboarding. (VERIFY coverage limits before quoting.)" },
       { q: "Can you work within infection-control or facility rules?", a: "We follow the facility's access, PPE and work-zone requirements and build them into the scope. Specific healthcare protocols are confirmed with your team during the site walk." },
     ],
-    seoTitle: "Commercial Tile & Grout Restoration Programs | StoneCraft",
-    metaDescription: "Scheduled, documented tile, grout and stone restoration for hospitals, universities, hotels, HOAs and property managers.",
+    seoTitle: "Commercial Tile & Grout Restoration | StoneCraft",
+    metaDescription: "Commercial tile, grout and stone restoration for managed properties. Request a scoped walkthrough and service plan.",
     category: "commercial",
   },
 ];

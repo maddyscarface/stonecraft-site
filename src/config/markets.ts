@@ -95,7 +95,7 @@ export const markets: Market[] = [
     phoneDisplay: realPhone(process.env.NEXT_PUBLIC_PHONE_FL) ? (process.env.NEXT_PUBLIC_PHONE_FL_DISPLAY || formatUs(process.env.NEXT_PUBLIC_PHONE_FL!)) : null,
     email: CONTACT_EMAIL,
     hours: "Mon–Fri 8am–5:30pm",
-    serviceAreaLabel: "Serving Palm Beach County and Broward County",
+    serviceAreaLabel: "Intended service area: Palm Beach County and Broward County (availability being confirmed)",
     homeBase: { lat: 26.5, lng: -80.1 }, // VERIFY
     showPriceRanges: false,
     credentialIds: ["insured", "fl-license"],
@@ -111,6 +111,12 @@ export const markets: Market[] = [
 ];
 
 export const getMarket = (id: string) => markets.find((m) => m.id === id || m.slug === id);
+
+/** Markets currently accepting work. Pre-launch markets are excluded from schema areaServed and the sitemap. */
+export const liveMarkets = () => markets.filter((m) => m.status === "live");
+export const isMarketLive = (id: string) => getMarket(id)?.status === "live";
+export const liveAreaServed = () => liveMarkets().map((m) => `${m.name}, ${m.state}`);
+
 
 /** All ZIPs routed to a zone, derived from the city table plus extras. */
 export function zoneZips(zone: Zone): string[] {
