@@ -4,12 +4,12 @@ import { markets } from "@/config/markets";
 import { cities } from "@/config/cities";
 import { meta } from "@/lib/seo";
 
-export const metadata = meta({ title: "Service Areas — Greater Boston & Southeast Florida | StoneCraft", description: "Towns and cities StoneCraft serves for tile, grout and stone restoration in Greater Boston and Southeast Florida.", path: "/service-areas" });
+export const metadata = meta({ title: "Service Areas | Greater Boston Tile Restoration | StoneCraft", description: "Greater Boston is currently served for tile, grout and stone restoration. Southeast Florida availability is being confirmed and is not yet a live market.", path: "/service-areas" });
 
 export default function Page() {
   return (
     <>
-      <PageHero image="boston-back-bay-brownstone" eyebrow="Service areas" title="Where We Work" sub="We're a service-area business: we come to you. Appointments are grouped by area so our team spends time on your project, not in traffic." />
+      <PageHero image="boston-back-bay-brownstone" eyebrow="Service areas" title="Where We Work" sub="We're a service-area business: we come to you. Greater Boston is currently served. Southeast Florida pages exist so you can enquire, but availability is still being confirmed and those pages are not advertised as live coverage." />
       {markets.map((m) => (
         <Section key={m.id} tone={m.id === "boston" ? "cream" : "white"}>
           <Heading eyebrow={m.brandName} title={m.name} sub={m.status === "pre-launch" ? m.statusNote : m.serviceAreaLabel} />

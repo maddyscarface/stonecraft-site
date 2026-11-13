@@ -6,7 +6,7 @@ import { meta } from "@/lib/seo";
 import { Photo } from "@/components/Photo";
 import { marketImage } from "@/config/photos";
 
-export const metadata = meta({ title: "About StoneCraft — Independent Tile, Grout & Stone Restoration", description: "StoneCraft is an independently owned restoration company serving Greater Boston and Southeast Florida. Restoration-first, honest about when replacement is needed.", path: "/about" });
+export const metadata = meta({ title: "About StoneCraft | Independent Restoration Company", description: "StoneCraft is independently owned and operated — not a franchise. Restoration-first tile, grout and stone work in Greater Boston, with Southeast Florida availability being confirmed.", path: "/about" });
 
 export default function Page() {
   return (

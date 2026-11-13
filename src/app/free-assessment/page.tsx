@@ -36,7 +36,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
             <div className="bg-white p-7 shadow-card">
               <p className="eyebrow text-bronze">What happens next</p>
               <ol className="mt-5 space-y-4 text-sm">
-                {["We look at every photo — grout, caulk, sealant, tile and substrate.", "You get an honest read: restore, repair, or (if it's the right answer) replace.", "If restoration fits, you receive a written scope and price. Nothing is booked until you approve."].map((t, i) => (
+                {["We look at every photo — grout, caulk, sealant, tile and substrate.", "You get an honest read: restore, repair, or (if it's the right answer) replace.", "If photos cannot confirm moisture, hollow tile or unusual materials, we will say that an onsite review is required. Complex work is never promised from photos alone.", "If restoration fits, you receive a written scope and price. Nothing is booked until you approve."].map((t, i) => (
                   <li key={t} className="flex gap-4"><span className="font-serif text-2xl leading-none text-bronze">{i + 1}</span><span className="leading-relaxed text-basalt/80">{t}</span></li>
                 ))}
               </ol>
