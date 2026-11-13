@@ -8,11 +8,12 @@ import { markets } from "@/config/markets";
 import { coreCities } from "@/config/cities";
 import { flags, site } from "@/config/site";
 import { founder, publishableCaseStudies, publishableGallery } from "@/config/gallery";
-import { faqSchema, meta } from "@/lib/seo";
+import { faqSchema, meta, webPageSchema } from "@/lib/seo";
+import { RegionSelector } from "@/components/RegionSelector";
 
 export const metadata = meta({
-  title: "Tile, Grout & Stone Restoration — Greater Boston & Southeast Florida | StoneCraft",
-  description: "Professional tile, grout, shower and natural stone restoration for homeowners, renters, property managers and commercial facilities. Send photos for a free assessment.",
+  title: "Tile & Grout Restoration in Boston | StoneCraft",
+  description: "Restore showers, tile, grout and natural stone in Greater Boston. Submit photos for a restoration assessment.",
   path: "/",
 });
 
@@ -22,7 +23,12 @@ const FAQ = [
   { q: "How long does a typical job take?", a: "Many residential jobs are completed in a day; some need a second visit for curing or repairs. Your quote states the expected schedule." },
   { q: "Do you work with renters?", a: "Yes, with written landlord approval before any work is booked. We can coordinate with your landlord if you authorise us to." },
   { q: "Do you serve commercial facilities?", a: "Yes. We scope hospitals, universities, hotels, HOAs and multifamily properties by area, schedule work into permitted windows and document completion." },
-  { q: "Which areas do you serve?", a: "Greater Boston (Boston, Cambridge, Brookline, Newton, MetroWest and nearby towns) and Southeast Florida (Palm Beach and Broward counties), subject to scheduling availability." },
+  { q: "Which areas do you serve?", a: "Greater Boston is currently served, including Boston, Cambridge, Brookline, Newton, MetroWest and nearby towns listed on our service-area pages. Southeast Florida (Palm Beach and Broward counties) is pre-launch: availability is being confirmed, and a landing page does not mean that market is already live." },
+  { q: "Can stained grout be restored, or does it need replacement?", a: "Stained grout can often be cleaned and colour-sealed if the joints are sound. Regrouting is needed when grout is crumbling, missing, or stays damp because of a leak. Photos usually show which path is realistic; loose tile or soft walls mean restoration is not the answer." },
+  { q: "What is the difference between grout colour sealing and regular sealing?", a: "A clear or impregnating sealer helps resist stains but leaves the existing colour, including blotches. Colour sealing applies a pigmented, protective coating so grout lines look uniform. Colour sealants generally will not bond reliably to epoxy grout; we confirm grout type from photos or a test area." },
+  { q: "Can scratched marble be refinished without a high-gloss finish?", a: "Yes. Honing can remove light scratches and etching and leave a matte or satin finish. Polishing is optional and only used when a higher sheen is requested and suitable for the stone. We set the finish from a test area rather than forcing a glossy look." },
+  { q: "How do photo-based estimates work, and when is an onsite review required?", a: "Most residential assessments start with 3–4 photos and a written range. An onsite review is required when photos cannot confirm substrate condition, hollow tile, moisture, unusual materials, or a complex commercial scope. We never promise that complex work can be priced or completed from photos alone." },
+  { q: "How do commercial restoration projects stay operational during work?", a: "We scope by area, phase restroom or corridor closures so an alternative remains available, and schedule into permitted windows such as nights, weekends or academic breaks. Cure times are built into the plan. Facility rules are written into the scope after a site walk." },
 ];
 
 export default function HomePage() {
@@ -36,18 +42,20 @@ export default function HomePage() {
   ];
   return (
     <>
+      <JsonLd data={webPageSchema({ title: "Tile & Grout Restoration in Boston | StoneCraft", description: "Restore showers, tile, grout and natural stone in Greater Boston. Submit photos for a restoration assessment.", path: "/" })} />
       <JsonLd data={faqSchema(FAQ)} />
       {/* 1 Hero */}
       <section className="relative isolate overflow-hidden bg-basalt text-white">
         <div className="absolute inset-0 -z-10"><Photo k="vanity-dark-marble" priority sizes="100vw" /><div className="photo-shade-side absolute inset-0" /></div>
         <div className="container-sc py-24 md:py-36">
-          <p className="eyebrow mb-7 text-bronze-light"><span className="rule-bronze" />Tile · Grout<span className="hidden sm:inline"> · Shower</span> · Stone</p>
-          <h1 className="max-w-4xl font-serif text-[48px] leading-[0.98] text-bone md:text-[88px]">Restore the Surfaces <em className="text-bronze-light">You Love.</em></h1>
-          <p className="mt-8 max-w-xl text-lg leading-relaxed text-bone/85">Tile, grout, shower and stone restoration for homes and properties in Greater Boston and Southeast Florida.</p>
+          <p className="eyebrow mb-7 text-bronze-light"><span className="rule-bronze" />StoneCraft · Restore more. Replace less.</p>
+          <h1 className="max-w-4xl font-serif text-[36px] leading-[1.02] text-bone sm:text-[48px] md:text-[72px]">Tile, Grout and Stone Restoration in Greater Boston</h1>
+          <p className="mt-8 max-w-2xl text-lg leading-relaxed text-bone/85">StoneCraft restores showers, grout, tile and natural stone for homeowners and managed properties. Share photos for a written assessment, or request a commercial site walkthrough where service is available.</p>
           <div className="mt-10 flex flex-wrap gap-3">
             <Link href="/free-assessment" className="btn btn-linen" data-testid="hero-cta">Get a Photo Assessment <ArrowRight size={15} /></Link>
-            <Link href="/commercial" className="btn btn-ghost" data-testid="hero-cta-commercial">Commercial Property Services</Link>
+            <Link href="/commercial-site-assessment" className="btn btn-ghost" data-testid="hero-cta-commercial">Commercial Site Walkthrough</Link>
           </div>
+          <RegionSelector markets={markets.map((m) => ({ id: m.id, slug: m.slug, shortName: m.shortName, name: m.name, status: m.status, statusNote: m.statusNote }))} />
           <dl className="mt-16 grid max-w-3xl grid-cols-1 gap-6 border-t border-white/15 pt-8 text-sm sm:grid-cols-3">
             {[["Step one", "Send 3–4 photos. No visit needed to start."], ["Before any work", "A written scope and price you approve."], ["Our advice", "Restore first — and we say so when it can't be."]].map(([t, d]) => (
               <div key={t}><dt className="eyebrow text-bronze-light">{t}</dt><dd className="mt-2 text-bone/80">{d}</dd></div>
@@ -87,7 +95,7 @@ export default function HomePage() {
                 <div className="absolute inset-0 transition duration-700 group-hover:scale-[1.04]"><Photo k={marketImage[m.id]} sizes="(min-width:768px) 25vw, 50vw" /></div>
                 <div className="photo-shade absolute inset-0" />
                 <div className="relative">
-                  {m.status === "pre-launch" && <p className="mb-3 inline-block bg-bronze-light px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-basalt">Availability being confirmed</p>}
+                  {m.status === "pre-launch" && <p className="mb-3 inline-block bg-bronze-light px-2 py-1 text-[12px] font-bold uppercase tracking-[0.16em] text-basalt">Availability being confirmed</p>}
                   <p className="font-serif text-3xl leading-tight text-bone">{m.name}</p>
                   <p className="mt-2 text-sm text-bone/75">{m.serviceAreaLabel}</p>
                   <span className="link-arrow mt-4 text-bronze-light">Explore <ArrowUpRight size={14} /></span>
@@ -219,16 +227,33 @@ export default function HomePage() {
 
       {/* 15 Reviews: render only when real reviews exist (flags.showReviews) — intentionally omitted */}
 
-      {/* 16 FAQ */}
+      {/* 16 Answer-first questions + FAQ */}
       <Section>
+        <Heading center eyebrow="Straight answers" title="What homeowners and facility teams usually ask" />
+        <div className="mx-auto mb-16 grid max-w-5xl gap-8 md:grid-cols-2">
+          {FAQ.filter((f) => f.q !== "Which areas do you serve?" && f.q !== "Do you work with renters?" && f.q !== "How long does a typical job take?").slice(0, 6).map((f) => (
+            <article key={f.q} className="border-t border-basalt/15 pt-5">
+              <h2 className="font-serif text-[22px] leading-snug md:text-[24px]">{f.q}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-basalt/75">{f.a}</p>
+            </article>
+          ))}
+        </div>
         <Heading center eyebrow="Questions" title="Frequently asked" />
         <Faq items={FAQ} />
       </Section>
 
       {/* Service areas preview */}
       <Section tone="white" className="!py-16">
-        <Heading eyebrow="Where we work" title="Greater Boston and Southeast Florida" />
-        <div className="flex flex-wrap gap-2">{coreCities().map((c) => <Link key={c.slug} href={`/${c.market}/${c.slug}`} className="border border-basalt/20 px-4 py-2 text-sm transition hover:border-basalt hover:bg-basalt hover:text-bone">{c.name}</Link>)}</div>
+        <Heading eyebrow="Where we work" title="Greater Boston is served now. Southeast Florida is being confirmed." />
+        {markets.map((m) => (
+          <div key={m.id} className="mt-8 first:mt-0">
+            <div className="mb-3 flex flex-wrap items-baseline gap-3">
+              <h3 className="font-serif text-2xl">{m.name}</h3>
+              <p className="text-sm text-basalt/60">{m.status === "live" ? m.serviceAreaLabel : "Availability being confirmed — a page here is not a launch announcement."}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">{coreCities(m.id).map((c) => <Link key={c.slug} href={`/${c.market}/${c.slug}`} className="border border-basalt/20 px-4 py-2 text-sm transition hover:border-basalt hover:bg-basalt hover:text-bone">{c.name}</Link>)}</div>
+          </div>
+        ))}
       </Section>
 
       {/* 17 Final conversion */}

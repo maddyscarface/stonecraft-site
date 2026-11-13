@@ -7,7 +7,17 @@ import { Monogram } from "./Photo";
 import { track } from "@/lib/tracking/client";
 
 /** Phone fields are null until a real number is configured; all phone UI is hidden while null. */
-export type PublicMarket = { id: "boston" | "south-florida"; shortName: string; phoneE164: string | null; phoneDisplay: string | null; email: string };
+export type PublicMarket = {
+  id: "boston" | "south-florida";
+  slug?: string;
+  shortName: string;
+  name?: string;
+  phoneE164: string | null;
+  phoneDisplay: string | null;
+  email: string;
+  status?: "live" | "pre-launch";
+  statusNote?: string;
+};
 type NavItem = { label: string; href: string; children?: { label: string; href: string }[] };
 
 export function Wordmark({ light = true, suffix }: { light?: boolean; suffix?: string }) {
@@ -16,7 +26,7 @@ export function Wordmark({ light = true, suffix }: { light?: boolean; suffix?: s
       <Monogram light={light} size={26} />
       <span className="flex flex-col leading-none">
         <span className={`font-serif text-[20px] font-semibold uppercase tracking-[0.14em] sm:text-[22px] sm:tracking-[0.2em] md:text-[24px] ${light ? "text-bone" : "text-basalt"}`}>Stonecraft</span>
-        {suffix && <span className={`mt-1 font-sans text-[9px] font-bold uppercase tracking-[0.34em] ${light ? "text-bronze-light" : "text-bronze"}`}>{suffix}</span>}
+        {suffix && <span className={`mt-1 font-sans text-[12px] font-bold uppercase tracking-[0.16em] ${light ? "text-bronze-light" : "text-bronze"}`}>{suffix}</span>}
       </span>
     </span>
   );
@@ -31,7 +41,7 @@ export function Header({ nav, markets }: { nav: NavItem[]; markets: PublicMarket
 
   return (
     <>
-      <div className="no-print border-b border-white/10 bg-basalt text-[11px] text-sage">
+      <div className="no-print border-b border-white/10 bg-basalt text-[12px] text-sage">
         <div className="container-sc flex items-center justify-between gap-3 py-2">
           <span className="hidden tracking-wide sm:inline">Tile, grout, marble &amp; natural stone restoration — free photo assessment</span>
           <div className="flex items-center gap-4">
@@ -40,7 +50,12 @@ export function Header({ nav, markets }: { nav: NavItem[]; markets: PublicMarket
             <div className="flex items-center border border-white/15" role="group" aria-label="Choose your area">
               {markets.map((x) => (
                 <button key={x.id} onClick={() => setMarket(x.id)} aria-pressed={x.id === market}
-                  className={`min-h-11 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] transition ${x.id === market ? "bg-bronze-light text-basalt" : "text-sage hover:text-bone"}`}>{x.shortName}</button>
+                  className={`min-h-11 px-3 py-2 text-[12px] font-bold uppercase tracking-[0.14em] transition ${x.id === market ? "bg-bronze-light text-basalt" : "text-sage hover:text-bone"}`}>
+                  <span className="flex flex-col items-start gap-0.5 leading-none">
+                    <span>{x.shortName}</span>
+                    {x.status === "pre-launch" && <span className="text-[12px] font-semibold normal-case tracking-[0.08em] opacity-80">Confirming</span>}
+                  </span>
+                </button>
               ))}
             </div>
           </div>
