@@ -24,8 +24,11 @@ export type Market = {
   serviceAreaLabel: string;
   /** Dispatch point for drive-time estimates. Not shown publicly. */
   homeBase: { lat: number; lng: number };
-  /** Show the owner-approved public price ranges for this market. */
-  showPriceRanges: boolean;
+  /**
+   * Phase 4: customers never see prices. Kept as a typed field so old callers compile; it must stay false
+   * (enforced by tests/phase4-leakage.test.ts).
+   */
+  showPriceRanges: false;
   /** Claim ids from site.trustClaims that apply to this market. */
   credentialIds: string[];
   zones: Zone[];
@@ -49,6 +52,13 @@ export function realPhone(raw?: string | null): string | null {
 export const formatUs = (raw: string) => { const t = (realPhone(raw) ?? "").slice(2); return t ? `(${t.slice(0, 3)}) ${t.slice(3, 6)}-${t.slice(6)}` : ""; };
 export const hasPhone = (m: Pick<Market, "phoneE164">) => Boolean(m.phoneE164);
 
+/** FL is live (owner-confirmed). Only MARKET_FL_PAUSED=true switches it back to the pre-launch behaviour. */
+export function flStatus(): "live" | "pre-launch" {
+  // The Phase 2 switch MARKET_FL_STATUS is retired: its stale "pre-launch" value is still set on the Vercel project and is
+  // deliberately ignored now that the owner confirmed FL live. Emergency kill switch: MARKET_FL_PAUSED=true.
+  return (process.env.MARKET_FL_PAUSED || "").trim().toLowerCase() === "true" ? "pre-launch" : "live";
+}
+
 const SLOTS = ["10:00", "11:30", "13:00", "14:30"];
 
 export const markets: Market[] = [
@@ -67,7 +77,7 @@ export const markets: Market[] = [
     hours: "Mon–Fri 7:30am–6pm · Sat 8am–2pm",
     serviceAreaLabel: "Serving Boston, Cambridge, Brookline, Newton and MetroWest",
     homeBase: { lat: 42.3601, lng: -71.0589 }, // VERIFY: set to real dispatch address
-    showPriceRanges: true,
+    showPriceRanges: false,
     credentialIds: ["insured", "ma-hic"],
     ghl: { locationIdEnv: "GHL_LOCATION_ID_BOSTON", pipelineEnvPrefix: "GHL_BOSTON" },
     zones: [
@@ -86,26 +96,27 @@ export const markets: Market[] = [
     brandName: "StoneCraft Southeast Florida",
     shortName: "SE Florida",
     state: "FL",
-    // Pre-launch until independent operating rights, entity, insurance and
-    // brand availability in Florida are confirmed in writing. See docs/15.
-    status: (process.env.MARKET_FL_STATUS as "live" | "pre-launch") ?? "pre-launch",
-    statusNote: "We're confirming scheduling availability in Southeast Florida. Send photos and we'll tell you when we can serve your address.",
+    // Phase 4: owner-confirmed LIVE (2026-11-14). MARKET_FL_PAUSED=true is the emergency kill switch
+    // that restores the pre-launch notice, noindex and "do not book" CRM flags without a code change.
+    status: flStatus(),
+    statusNote: flStatus() === "pre-launch" ? "We're confirming scheduling availability in Southeast Florida. Send photos and we'll tell you when we can serve your address." : undefined,
     timezone: "America/New_York",
     phoneE164: realPhone(process.env.NEXT_PUBLIC_PHONE_FL),
     phoneDisplay: realPhone(process.env.NEXT_PUBLIC_PHONE_FL) ? (process.env.NEXT_PUBLIC_PHONE_FL_DISPLAY || formatUs(process.env.NEXT_PUBLIC_PHONE_FL!)) : null,
     email: CONTACT_EMAIL,
     hours: "Mon–Fri 8am–5:30pm",
-    serviceAreaLabel: "Intended service area: Palm Beach County and Broward County (availability being confirmed)",
+    serviceAreaLabel: "Serving Palm Beach County and Broward County",
     homeBase: { lat: 26.5, lng: -80.1 }, // VERIFY
     showPriceRanges: false,
-    credentialIds: ["insured", "fl-license"],
+    // No licence claim for Florida until the owner supplies evidence (owner decision, see Phase 4 handoff).
+    credentialIds: ["insured"],
     ghl: { locationIdEnv: "GHL_LOCATION_ID_FL", pipelineEnvPrefix: "GHL_FL" },
     zones: [
-      { id: "fl-pb-north", marketId: "south-florida", name: "Palm Beach North", citySlugs: ["west-palm-beach", "palm-beach", "palm-beach-gardens"], primaryDay: "monday", flexDay: "thursday", slotTimes: SLOTS, slotDurationMin: 45, flexSlotCount: 1, flexReleaseHours: 48, priorityValueThreshold: 2000, driveGapWarningMin: 40, color: "#25292B", active: true,
+      { id: "fl-pb-north", marketId: "south-florida", name: "Palm Beach North", citySlugs: ["west-palm-beach", "palm-beach", "palm-beach-gardens", "jupiter"], primaryDay: "monday", flexDay: "thursday", slotTimes: SLOTS, slotDurationMin: 45, flexSlotCount: 1, flexReleaseHours: 48, priorityValueThreshold: 2000, driveGapWarningMin: 40, color: "#25292B", active: true,
         seasonalModes: [{ name: "peak", months: [11, 12, 1, 2, 3, 4], flexSlotCount: 2, flexReleaseHours: 24, priorityValueThreshold: 1500, slotTimes: ["10:00", "11:30", "13:00", "14:30", "15:45"] }] },
-      { id: "fl-pb-south", marketId: "south-florida", name: "Boca / Delray", citySlugs: ["boca-raton", "highland-beach", "delray-beach", "boynton-beach"], primaryDay: "tuesday", flexDay: "thursday", slotTimes: SLOTS, slotDurationMin: 45, flexSlotCount: 1, flexReleaseHours: 48, priorityValueThreshold: 2000, driveGapWarningMin: 40, color: "#77827C", active: true,
+      { id: "fl-pb-south", marketId: "south-florida", name: "Boca / Delray", citySlugs: ["boca-raton", "highland-beach", "delray-beach", "boynton-beach", "lake-worth-beach"], primaryDay: "tuesday", flexDay: "thursday", slotTimes: SLOTS, slotDurationMin: 45, flexSlotCount: 1, flexReleaseHours: 48, priorityValueThreshold: 2000, driveGapWarningMin: 40, color: "#77827C", active: true,
         seasonalModes: [{ name: "peak", months: [11, 12, 1, 2, 3, 4], flexSlotCount: 2, flexReleaseHours: 24, priorityValueThreshold: 1500, slotTimes: ["10:00", "11:30", "13:00", "14:30", "15:45"] }] },
-      { id: "fl-broward", marketId: "south-florida", name: "Broward", citySlugs: ["fort-lauderdale", "pompano-beach", "deerfield-beach", "plantation", "weston", "coral-springs"], primaryDay: "wednesday", flexDay: "friday", slotTimes: SLOTS, slotDurationMin: 45, flexSlotCount: 1, flexReleaseHours: 48, priorityValueThreshold: 2000, driveGapWarningMin: 45, color: "#B89A70", active: true },
+      { id: "fl-broward", marketId: "south-florida", name: "Broward", citySlugs: ["fort-lauderdale", "pompano-beach", "deerfield-beach", "plantation", "weston", "coral-springs", "hollywood", "davie"], primaryDay: "wednesday", flexDay: "friday", slotTimes: SLOTS, slotDurationMin: 45, flexSlotCount: 1, flexReleaseHours: 48, priorityValueThreshold: 2000, driveGapWarningMin: 45, color: "#B89A70", active: true },
     ],
   },
 ];

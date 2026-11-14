@@ -62,3 +62,13 @@ export function teamFor(marketId: string | null | undefined, _zoneId?: string | 
   if (marketId === "south-florida") return "palm-beach-broward";
   return "unassigned";
 }
+
+/** Per-market GHL region tag (Phase 4). Boston and SE Florida run as separate pipelines/paths. */
+export function regionTag(marketId: string | null | undefined) {
+  return marketId === "boston" ? "region:greater-boston" : marketId === "south-florida" ? "region:southeast-florida" : "region:out-of-area";
+}
+/** GHL path tag: which market pipeline the lead belongs to, e.g. ghl-path:fl-residential. */
+export function ghlPathTag(marketId: string | null | undefined, pipeline: string) {
+  const mk = marketId === "boston" ? "boston" : marketId === "south-florida" ? "fl" : "none";
+  return `ghl-path:${mk}-${pipeline === "residential" ? "residential" : "commercial"}`;
+}
