@@ -36,7 +36,7 @@ export function validateQualifiers(cfg: EstimateConfig, q: Qualifiers, hide: Pro
   const e: Partial<Record<keyof Qualifiers, string>> = {};
   if (!q.project_type) e.project_type = "Choose a project type";
   else if (!q.size) e.size = "Choose the closest size";
-  if (!q.budget) e.budget = "Choose a budget range (\"Not sure yet\" is fine)";
+  if (cfg.budgetBands.length && !q.budget) e.budget = "Choose a budget range (\"Not sure yet\" is fine)";
   if (!q.start) e.start = "Choose when you'd like to start";
   if (!hide.includes("address") && cfg.addressRequired && !q.address?.trim()) e.address = "Address is required for the visit";
   return e;
@@ -105,14 +105,14 @@ export function EstimateQualifiers({ cfg, value: q, onChange, theme: t, errors =
         </div>
       )}
 
-      <div>
+      {cfg.budgetBands.length > 0 && <div>
         <p className={t.label}>What budget are you working with? *</p>
         {chips("budget", cfg.budgetBands)}
         {err("budget")}
         {showRange && fit.fit === "below" && (
           <p className={`mt-2 text-sm ${t.muted}`} data-testid="budget-below">{"That's under the typical range for this scope. That's okay: we'll suggest a phased or essentials option on the call."}</p>
         )}
-      </div>
+      </div>}
 
       <div>
         <p className={t.label}>When would you like to start? *</p>

@@ -41,7 +41,8 @@ export function BeforeAfter({ before, after, alt, illustration }: { before?: str
 
 /* ───────── Roommate calculator ───────── */
 
-export function RoommateCalculator({ defaultPrice = 1500, compact }: { defaultPrice?: number; compact?: boolean }) {
+// Phase 4: no pre-filled price — StoneCraft never shows a price; the customer types the figure from their own written quote.
+export function RoommateCalculator({ defaultPrice = 0, compact }: { defaultPrice?: number; compact?: boolean }) {
   const [price, setPrice] = useState(defaultPrice);
   const [n, setN] = useState(3);
   const split = useMemo(() => splitCost(price || 0, n), [price, n]);
@@ -54,7 +55,7 @@ export function RoommateCalculator({ defaultPrice = 1500, compact }: { defaultPr
       <label className="mt-5 block text-sm text-linen" htmlFor="rc-price">Project price</label>
       <div className="mt-1 flex items-center rounded border border-hunter-light bg-hunter-mid px-3">
         <span className="text-linen">$</span>
-        <input id="rc-price" inputMode="decimal" className="w-full bg-transparent px-2 py-3 text-lg text-white outline-none" value={price || ""} onChange={(e) => { const v = Number(e.target.value.replace(/[^\d.]/g, "")); setPrice(Number.isFinite(v) ? Math.min(v, 100000) : 0); }} />
+        <input id="rc-price" inputMode="decimal" placeholder="From your written quote" className="w-full bg-transparent px-2 py-3 text-lg text-white outline-none" value={price || ""} onChange={(e) => { const v = Number(e.target.value.replace(/[^\d.]/g, "")); setPrice(Number.isFinite(v) ? Math.min(v, 100000) : 0); }} />
       </div>
       <p className="mt-5 text-sm text-linen" id="rc-n-label">People paying</p>
       <div className="mt-2 flex items-center gap-3" role="group" aria-labelledby="rc-n-label">
@@ -64,8 +65,8 @@ export function RoommateCalculator({ defaultPrice = 1500, compact }: { defaultPr
       </div>
       <div className="mt-6 rounded bg-hunter-mid p-4">
         <p className="text-sm text-sage">Each person pays</p>
-        <p className="font-serif text-4xl text-linen" data-testid="rc-share">{fmt(split.perPerson)}</p>
-        {uneven && <p className="mt-1 text-xs text-sage">Shares differ by a cent so they add up exactly: {split.shares.map(fmt).join(" · ")}</p>}
+        <p className="font-serif text-4xl text-linen" data-testid="rc-share">{price > 0 ? fmt(split.perPerson) : "—"}</p>
+        {price > 0 && uneven && <p className="mt-1 text-xs text-sage">Shares differ by a cent so they add up exactly: {split.shares.map(fmt).join(" · ")}</p>}
       </div>
       <p className="mt-4 text-xs text-sage">Splitting the cost doesn't replace written landlord approval—we need that before any work is booked.</p>
       <Link href="/free-assessment?type=renter" onClick={() => track("cta_click", { location: "roommate_calc", people: n })} className="btn btn-linen mt-5 w-full">Get a Written Quote</Link>

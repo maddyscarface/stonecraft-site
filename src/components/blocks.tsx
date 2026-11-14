@@ -1,8 +1,7 @@
-import { PricingViewBeacon } from "@/components/estimate/PricingViewBeacon";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Camera, ClipboardCheck, MessageCircle, Sparkles, CalendarCheck, ShieldCheck } from "lucide-react";
 import type { FAQ } from "@/config/services";
-import { services, publicPriceRanges, PRICE_RANGES_OWNER_REVIEWED } from "@/config/services";
+import { services } from "@/config/services";
 import { verifiedTrust, site } from "@/config/site";
 import { segments } from "@/config/segments";
 import { segmentImage, serviceImage, type PhotoKey } from "@/config/photos";
@@ -181,14 +180,20 @@ export function RestoreVsReplace() {
   );
 }
 
-export function PriceGuide({ show }: { show: boolean }) {
-  if (!show || !PRICE_RANGES_OWNER_REVIEWED) return <p className="border border-cream-dark bg-white p-6 text-sm">Pricing is set after we review your photos. You'll receive a written scope and price before anything is booked.</p>;
+/**
+ * Phase 4: customers never see prices. The old price-range card is replaced with a "how pricing works"
+ * explainer (no figures). The #price-guide anchor is kept so existing links and ads still land here.
+ */
+export function PriceGuide(_props: { show?: boolean } = {}) {
   return (
-    <div id="price-guide" className="scroll-mt-24 self-start border-t-2 border-bronze bg-white p-7 shadow-card">
-      <PricingViewBeacon where="price-guide" />
-      <h3 className="font-serif text-2xl">What Greater Boston projects typically cost</h3>
-      <dl className="mt-5 grid gap-x-8 gap-y-1 text-sm sm:grid-cols-2">{Object.values(publicPriceRanges).map((r) => <div key={r.label} className="flex justify-between gap-3 border-b border-cream-dark py-2.5"><dt>{r.label}</dt><dd className="font-semibold">{r.range}</dd></div>)}</dl>
-      <p className="mt-4 text-xs text-basalt/60">Guidance only. Actual pricing depends on size, condition and access; your assessment includes a written quote.</p>
+    <div id="price-guide" className="scroll-mt-24 self-start border-t-2 border-bronze bg-white p-7 shadow-card" data-testid="pricing-explainer">
+      <h3 className="font-serif text-2xl">How pricing works</h3>
+      <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-relaxed">
+        <li>Send photos (and measurements if you have them) through the assessment form or guided walkthrough.</li>
+        <li>We review the surfaces, condition and access. If photos can&apos;t confirm something, we ask for a short video call or a site check.</li>
+        <li>You receive a written scope and price, reviewed and approved by the owner, before anything is booked.</li>
+      </ol>
+      <p className="mt-4 text-xs text-basalt/60">We don&apos;t publish price lists or automated estimates: every bathroom, floor and stone surface is different.</p>
     </div>
   );
 }
