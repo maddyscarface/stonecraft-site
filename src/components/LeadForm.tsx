@@ -126,13 +126,15 @@ export function LeadForm(props: LeadFormProps) {
       let fired = false; try { fired = sessionStorage.getItem(`sc_fired_${eventId}`) === "1"; } catch {}
       if (!fired && !data.duplicate) {
         pushUserData({ email: str("email"), phone: str("phone"), firstName: str("firstName"), lastName: str("lastName"), zip: str("zip") });
-        track("generate_lead", { event_id: eventId, form_variant: variant, customer_type: body.customerType, market: data.market ?? market, lead_tier: data.tier, photos: photos.length, segment: body.segment },
+        track("generate_lead", { event_id: eventId, form_variant: variant, customer_type: body.customerType, market: data.market ?? market, county: data.county ?? undefined, lead_tier: data.tier, photos: photos.length, segment: body.segment },
           { name: "Lead", eventId, custom: { content_category: variant, lead_tier: data.tier } });
         gtagLeadConversion(eventId, { form_variant: variant, lead_tier: data.tier, market: data.market ?? market });
         // OpenAI Ads pixel: same event_id as the server Conversions API call (deduplicated).
         if (currentConsent().ad_storage === "granted") oaiqLead(eventId);
         try { sessionStorage.setItem(`sc_fired_${eventId}`, "1"); } catch {}
       }
+      // Phase 4: remember this request (this tab only) so the thank-you page can offer the guided walkthrough.
+      if (data.market && variant !== "renter") { try { sessionStorage.setItem("sc_wt_lead", JSON.stringify({ id: eventId, at: Date.now(), v: variant })); } catch {} }
       router.push(`/thank-you?v=${variant}&m=${data.market ?? market}${photos.length ? "" : "&photos=0"}`);
     } catch {
       setServerError("Network error. Please try again, or email info@stonecraftpros.com."); setSubmitting(false);
@@ -261,7 +263,7 @@ export function LeadForm(props: LeadFormProps) {
         <fieldset className="space-y-5">
           <legend className="mb-2 font-serif text-[30px] leading-tight">Budget, approvals & timing</legend>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Anticipated budget"><select className="field" value={str("budget")} onChange={(e) => set("budget", e.target.value)}><option value="">Choose…</option><option value="lt10k">Under $10k</option><option value="10to25k">$10k–$25k</option><option value="25to75k">$25k–$75k</option><option value="75to250k">$75k–$250k</option><option value="250kplus">$250k+</option><option value="unknown">Not yet defined</option></select></Field>
+            <Field label="Budget status"><select className="field" value={str("budget")} onChange={(e) => set("budget", e.target.value)} data-testid="budget-status"><option value="">Choose…</option><option value="approved">Budget approved for this work</option><option value="planning">Budget being set / capital planning</option><option value="unknown">Not yet defined</option></select></Field>
             <Field label="Procurement process"><select className="field" value={str("procurement")} onChange={(e) => set("procurement", e.target.value)}><option value="">Choose…</option><option value="po">Purchase order</option><option value="rfp">RFP / bid</option><option value="approved_vendor">Approved-vendor list</option><option value="board_approval">Board approval</option><option value="unknown">Not sure</option></select></Field>
             <Field label="Your role in the decision"><select className="field" value={str("decisionRole")} onChange={(e) => set("decisionRole", e.target.value)}><option value="">Choose…</option><option value="decision_maker">I'm the decision maker</option><option value="influencer">I recommend / influence</option><option value="researching">Researching options</option></select></Field>
             <Field label="Timeline"><select className="field" value={str("timeline")} onChange={(e) => set("timeline", e.target.value)}><option value="">Choose…</option><option value="30d">Within 30 days</option><option value="90d">Within 90 days</option><option value="6m">Within 6 months</option><option value="next_fy">Next fiscal year</option><option value="unknown">Not sure</option></select></Field>

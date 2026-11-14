@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronDown, Mail, Menu, Phone, X, Camera } from "lucide-react";
 import { useMarket } from "./MarketContext";
 import { Monogram } from "./Photo";
@@ -35,6 +36,8 @@ export function Wordmark({ light = true, suffix }: { light?: boolean; suffix?: s
 export function Header({ nav, markets }: { nav: NavItem[]; markets: PublicMarket[] }) {
   const { market, setMarket } = useMarket();
   const [open, setOpen] = useState(false);
+  // The guided walkthrough has its own sticky action bar; the site-wide mobile bar would cover it.
+  const inWalkthrough = (usePathname() ?? "").startsWith("/walkthrough");
   const m = markets.find((x) => x.id === market) ?? markets[0];
   const callClick = (location: string) => track("phone_click", { market: m.id, location }, { name: "Contact" });
   const mailClick = (location: string) => track("email_click", { market: m.id, location }, { name: "Contact" });
@@ -98,12 +101,12 @@ export function Header({ nav, markets }: { nav: NavItem[]; markets: PublicMarket
         </div>
       )}
 
-      <div className="no-print fixed inset-x-0 bottom-0 z-40 grid grid-cols-2 border-t border-white/10 bg-basalt md:hidden">
+      {!inWalkthrough && <div className="no-print fixed inset-x-0 bottom-0 z-40 grid grid-cols-2 border-t border-white/10 bg-basalt md:hidden">
         {m.phoneE164
           ? <a href={`tel:${m.phoneE164}`} onClick={() => callClick("mobile_bar")} className="flex min-h-11 items-center justify-center gap-2 py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-bone"><Phone size={15} />Call</a>
           : <a href={`mailto:${m.email}`} onClick={() => mailClick("mobile_bar")} className="flex min-h-11 items-center justify-center gap-2 py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-bone"><Mail size={15} />Email us</a>}
         <Link href="/free-assessment" onClick={() => track("cta_click", { location: "mobile_bar" })} className="flex min-h-11 items-center justify-center gap-2 bg-bronze-light py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-basalt"><Camera size={15} />Send Photos</Link>
-      </div>
+      </div>}
     </>
   );
 }
