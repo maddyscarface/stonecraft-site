@@ -113,7 +113,8 @@ export const commercialLead = base.extend({
   walkthroughRequested: z.boolean().default(false),
   walkthroughWindow: optText(200),
   workHours: z.enum(["business", "evenings", "overnight", "weekends", "flexible", ""]).optional(),
-  budget: z.enum(["lt10k", "10to25k", "25to75k", "75to250k", "250kplus", "unknown", ""]).optional(),
+  // Phase 4: no dollar brackets in the public form. Legacy bracket ids are still accepted from old clients.
+  budget: z.enum(["approved", "planning", "lt10k", "10to25k", "25to75k", "75to250k", "250kplus", "unknown", ""]).optional(),
   procurement: z.enum(["po", "rfp", "approved_vendor", "board_approval", "unknown", ""]).optional(),
   decisionRole: z.enum(["decision_maker", "influencer", "researching", ""]).optional(),
   decisionMakerName: optText(120),

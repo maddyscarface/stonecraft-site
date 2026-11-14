@@ -4,6 +4,8 @@ import { detectZone } from "@/lib/scheduling/engine";
 import type { LeadInput } from "./schema";
 import { teamFor } from "@/config/crm";
 import { ghlPipeline } from "@/lib/crm/sync";
+import { flCountyForZip } from "@/config/florida-areas";
+import { regionTag, ghlPathTag } from "@/config/crm";
 
 export type Pipeline = "residential" | "commercial" | "property_manager";
 
@@ -17,6 +19,8 @@ export type Routing = {
   marketStatus: Market["status"] | null;
   pipeline: Pipeline;
   city: string | null;
+  /** Florida county id (palm-beach | broward), "unconfirmed" for an FL ZIP outside both counties, null outside FL. */
+  county: string | null;
   tags: string[];
 };
 
@@ -32,11 +36,14 @@ export function marketForZip(zip: string): Market | null {
   return null;
 }
 
-export function routeLead(lead: LeadInput): Routing {
+/** zipOverrides: admin-edited FL ZIP→county fixes (areas:zip-overrides). "none" = FL but outside both counties. */
+export function routeLead(lead: LeadInput, zipOverrides: Record<string, string> = {}): Routing {
   const market = marketForZip(lead.zip);
   const activeZone = market ? detectZone({ zip: lead.zip, town: lead.town }, market.zones) : null;
   const anyZone = market ? detectZone({ zip: lead.zip, town: lead.town }, market.zones, { includeInactive: true }) : null;
   const city = cityByZip(lead.zip)?.name || lead.town || null;
+  const ov = zipOverrides[lead.zip];
+  const county = market?.id === "south-florida" ? (ov === "palm-beach" || ov === "broward" ? ov : ov === "none" ? "unconfirmed" : (flCountyForZip(lead.zip) ?? "unconfirmed")) : null;
 
   const pipeline: Pipeline =
     lead.variant === "commercial" ? (lead.segment === "property-management" ? "property_manager" : "commercial")
@@ -50,6 +57,9 @@ export function routeLead(lead: LeadInput): Routing {
     `pipeline:${ghlPipeline(pipeline)}`,
     pipeline === "property_manager" ? "segment:property-portfolio" : "",
     `team:${teamFor(market?.id, activeZone?.id)}`,
+    regionTag(market?.id),
+    ghlPathTag(market?.id, pipeline),
+    county ? `county:${county}` : "",
     activeZone ? `zone:${activeZone.id}` : anyZone ? `zone:${anyZone.id}:inactive` : "zone:none",
     market?.status === "pre-launch" ? "market:pre-launch" : "",
     lead.photoKeys.length ? "photos:received" : "photos:none",
@@ -66,6 +76,6 @@ export function routeLead(lead: LeadInput): Routing {
     zoneId: activeZone?.id ?? null, zoneName: activeZone?.name ?? null,
     inMarket: !!market, inActiveZone: !!activeZone,
     marketStatus: market?.status ?? null,
-    pipeline, city, tags,
+    pipeline, city, county, tags,
   };
 }
