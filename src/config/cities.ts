@@ -10,6 +10,8 @@
  *  - ZIP lists are best-effort and must be checked against USPS before launch (VERIFY).
  */
 
+import { FL_AREA_CITIES } from "./florida-areas";
+
 export type MarketId = "boston" | "south-florida";
 
 export type City = {
@@ -27,6 +29,8 @@ export type City = {
   neighborhoods?: string[];
   /** Real, permissioned local proof only. Empty until it exists. */
   localProof?: string[];
+  /** Florida only: county id (see florida-areas.ts). */
+  county?: "palm-beach" | "broward";
 };
 
 export const cities: City[] = [
@@ -178,58 +182,8 @@ export const cities: City[] = [
     commonIssues: ["Unit-turn bathroom refreshes", "Stained floor grout", "Caulk replacement"],
   },
 
-  // ───────────── Florida — core ─────────────
-  {
-    slug: "west-palm-beach", name: "West Palm Beach", market: "south-florida", state: "FL", tier: "core",
-    zips: ["33401", "33405", "33407", "33409", "33411", "33412", "33413", "33415", "33417"], lat: 26.7153, lng: -80.0534,
-    intro: "West Palm Beach ranges from historic neighbourhoods like El Cid and Flamingo Park to downtown condo towers. South Florida's hard water and humidity mean mineral build-up and mildew are common in showers and on tile floors.",
-    housing: "Historic single-family homes, downtown condos and rentals.",
-    commonIssues: ["Mineral deposits on shower tile and glass joints", "Mildew in grout and caulk", "Large-format floor tile grout"],
-  },
-  {
-    slug: "palm-beach", name: "Palm Beach", market: "south-florida", state: "FL", tier: "core",
-    zips: ["33480"], lat: 26.7056, lng: -80.0364,
-    intro: "Homes and condominiums on Palm Beach often feature marble, limestone and other natural stone that needs stone-safe care. Many owners are seasonal, so work is often scheduled around arrival dates or completed while the residence is unoccupied.",
-    housing: "Estates and condominiums with extensive natural stone; many seasonal residents.",
-    commonIssues: ["Etched and dull marble", "Limestone and coral-stone staining", "Sealant renewal before the season"],
-  },
-  {
-    slug: "palm-beach-gardens", name: "Palm Beach Gardens", market: "south-florida", state: "FL", tier: "core",
-    zips: ["33410", "33418"], lat: 26.8234, lng: -80.1387,
-    intro: "Palm Beach Gardens is dominated by planned and gated communities with HOA standards and large-format tile throughout. Floors and showers take daily wear, and many communities require vendor insurance before work.",
-    housing: "Gated and planned communities; single-family homes and villas.",
-    commonIssues: ["Large-format floor tile grout", "Shower mineral build-up", "Travertine pool-area and lanai stone"],
-  },
-  {
-    slug: "boca-raton", name: "Boca Raton", market: "south-florida", state: "FL", tier: "core",
-    zips: ["33427", "33428", "33431", "33432", "33433", "33434", "33486", "33496", "33498"], lat: 26.3683, lng: -80.1289,
-    intro: "Boca Raton has a high concentration of condominiums and country-club communities, many with marble or travertine and tile from the 1990s and 2000s. Restoring existing stone and grout is often simpler than a remodel that requires association approvals.",
-    housing: "Condominiums, country-club communities and single-family homes.",
-    commonIssues: ["Dull marble floors", "Travertine fill and sealing", "Mineral-stained shower grout"],
-  },
-  {
-    slug: "delray-beach", name: "Delray Beach", market: "south-florida", state: "FL", tier: "core",
-    zips: ["33444", "33445", "33446", "33483", "33484"], lat: 26.4615, lng: -80.0728,
-    intro: "Delray Beach combines older coastal cottages, downtown townhomes and large 55+ and HOA communities to the west. Salt air near the coast and humidity inland both take a toll on grout and caulk.",
-    housing: "Coastal homes, townhomes and HOA communities.",
-    commonIssues: ["Mildew in caulk", "Stained floor grout", "Salt-air wear on exterior-adjacent tile"],
-  },
-  {
-    slug: "fort-lauderdale", name: "Fort Lauderdale", market: "south-florida", state: "FL", tier: "core",
-    zips: ["33301", "33304", "33305", "33306", "33308", "33309", "33311", "33312", "33315", "33316"], lat: 26.1224, lng: -80.1373,
-    intro: "Fort Lauderdale has waterfront homes along the canals, beachside condos and a large hospitality sector. Condo associations and hotels need hard-surface work scheduled around residents, guests and building rules.",
-    housing: "Waterfront homes, beach condos, hotels and multifamily buildings.",
-    commonIssues: ["Condo shower and floor grout", "Marble in lobbies and baths", "Mineral deposits from hard water"],
-  },
-
-  // ───────────── Florida — supporting (listed, not paged) ─────────────
-  { slug: "boynton-beach", name: "Boynton Beach", market: "south-florida", state: "FL", tier: "supporting", zips: ["33426", "33435", "33436", "33437"], lat: 26.5318, lng: -80.0905, intro: "", housing: "", commonIssues: [] },
-  { slug: "highland-beach", name: "Highland Beach", market: "south-florida", state: "FL", tier: "supporting", zips: ["33487"], lat: 26.3995, lng: -80.0656, intro: "", housing: "", commonIssues: [] },
-  { slug: "pompano-beach", name: "Pompano Beach", market: "south-florida", state: "FL", tier: "supporting", zips: ["33060", "33062", "33064", "33069"], lat: 26.2379, lng: -80.1248, intro: "", housing: "", commonIssues: [] },
-  { slug: "deerfield-beach", name: "Deerfield Beach", market: "south-florida", state: "FL", tier: "supporting", zips: ["33441", "33442"], lat: 26.3184, lng: -80.0998, intro: "", housing: "", commonIssues: [] },
-  { slug: "weston", name: "Weston", market: "south-florida", state: "FL", tier: "supporting", zips: ["33326", "33327", "33331", "33332"], lat: 26.1004, lng: -80.3998, intro: "", housing: "", commonIssues: [] },
-  { slug: "plantation", name: "Plantation", market: "south-florida", state: "FL", tier: "supporting", zips: ["33317", "33322", "33324", "33388"], lat: 26.1276, lng: -80.2331, intro: "", housing: "", commonIssues: [] },
-  { slug: "coral-springs", name: "Coral Springs", market: "south-florida", state: "FL", tier: "supporting", zips: ["33065", "33067", "33071", "33076"], lat: 26.2712, lng: -80.2706, intro: "", housing: "", commonIssues: [] },
+  // ───────────── Florida — generated from src/config/florida-areas.ts (single editable list) ─────────────
+  ...FL_AREA_CITIES.map(({ county, page, ownerConfirmed, adminNote, ...c }): City => ({ ...c, county, market: "south-florida", state: "FL", tier: page ? "core" : "supporting" })),
 ];
 
 export const coreCities = (market?: MarketId) =>
