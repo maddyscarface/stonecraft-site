@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { kvConfigured, memoryStoreBlocked, productionOverrideIgnored } from "@/lib/store";
 import { localUploadsAllowed, supabaseConfigured } from "@/lib/photos";
+import { dmStatus } from "@/lib/datamoon/config";
+import { arProviders } from "@/lib/ar/contract";
+import { flStatus } from "@/config/markets";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +31,12 @@ export function GET() {
     lead_intake: memoryStoreBlocked() ? "blocked: durable storage (Upstash) not configured in production" : kvConfigured ? "ok: durable" : "ok: in-memory (non-production only, data is not retained)",
     photo_storage: supabaseConfigured ? "ok: durable" : localUploadsAllowed() ? "in-memory (non-production only)" : "blocked: Supabase Storage not configured",
     production_override_ignored: productionOverrideIgnored(),
+    // Phase 4 flags (status words only).
+    markets: { boston: "live", south_florida: flStatus() },
+    walkthrough: { enabled: e.WALKTHROUGH_ENABLED !== "false", self_start: e.WALKTHROUGH_ENABLED !== "false" && e.WALKTHROUGH_SELF_START === "true" },
+    datamoon: (({ main, intent, webhook, activation, ghlSync }) => ({ main, intent, webhook, activation, ghl_sync: ghlSync }))(dmStatus()),
+    ar: Object.fromEntries(arProviders.map((p) => [p, "disabled"])),
+    private_files: e.SUPABASE_URL && e.SUPABASE_SERVICE_ROLE_KEY ? "supabase (configured, unverified)" : "local sandbox (not durable)",
     note: "Credentials present does not mean the integration is verified. See docs/18-qa-deploy.md.",
   });
 }

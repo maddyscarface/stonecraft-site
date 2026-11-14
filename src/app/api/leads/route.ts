@@ -1,6 +1,10 @@
+import { regionTag } from "@/config/crm";
 import { NextResponse, type NextRequest } from "next/server";
 import { parseLead } from "@/lib/leads/schema";
 import { routeLead } from "@/lib/leads/routing";
+import { zipOverrides } from "@/lib/leads/zip-overrides";
+import { kv } from "@/lib/server/kv";
+import { enqueue } from "@/lib/ops/outbox";
 import { defaultScoring, scoreLead, type ScoringConfig } from "@/lib/leads/scoring";
 import { pushLeadToGhl } from "@/lib/crm/ghl";
 import { externalContactId } from "@/lib/crm/sync";
@@ -61,7 +65,7 @@ export async function POST(req: NextRequest) {
   const photoKeys = lead.photoKeys.filter((k) => validKeyForEvent(k, lead.eventId));
   const q = lead.variant === "commercial" ? undefined : sanitizeQualifiers(estimateConfig, lead.qualifiers);
   const leadClean = { ...lead, photoKeys, qualifiers: q };
-  const routing = routeLead(leadClean);
+  const routing = routeLead(leadClean, await zipOverrides());
   const scoring = (await kvGet<ScoringConfig>("cfg:scoring")) ?? defaultScoring;
   const score = scoreLead(leadClean, routing, scoring);
   const qPts = qualifierScore(estimateConfig, q);
@@ -83,7 +87,7 @@ export async function POST(req: NextRequest) {
       name: "Lead", ga4Name: "generate_lead", eventId: lead.eventId, market: routing.marketId, url: `${base}${lead.sourcePage ?? "/"}`,
       user: { email: lead.email, phone: lead.phone, firstName: lead.firstName, lastName: lead.lastName, zip: lead.zip, city: routing.city ?? undefined, state: routing.market?.state, externalId: externalContactId(lead.email, lead.phone) },
       client: { ip, userAgent: req.headers.get("user-agent") ?? undefined, fbc: lead.attribution.fbc, fbp: lead.attribution.fbp, gaClientId },
-      params: { lead_tier: score.tier, form_variant: lead.variant, customer_type: lead.customerType },
+      params: { lead_tier: score.tier, form_variant: lead.variant, customer_type: lead.customerType, region: regionTag(routing.marketId).slice(7), county: routing.county ?? undefined },
       consent: { ad_storage: adConsent, analytics_storage: true },
     }),
     // OpenAI Ads Conversions API. id = the pixel's event_id → one conversion. Skipped without ad consent.
@@ -98,7 +102,7 @@ export async function POST(req: NextRequest) {
 
   const record = {
     id: lead.eventId, at: new Date().toISOString(), variant: lead.variant, customerType: lead.customerType,
-    market: routing.marketId, zone: routing.zoneName, city: routing.city, pipeline: routing.pipeline,
+    market: routing.marketId, zone: routing.zoneName, city: routing.city, county: routing.county, pipeline: routing.pipeline,
     score: score.score, tier: score.tier, photos: photoKeys.length, source: lead.attribution.utm_source ?? (lead.attribution.gclid ? "google" : lead.attribution.fbclid ? "meta" : "direct"),
     medium: lead.attribution.utm_medium, campaign: lead.attribution.utm_campaign, sourcePage: lead.sourcePage,
     segment: lead.variant === "commercial" ? lead.segment : undefined, gaClientId,
@@ -111,6 +115,10 @@ export async function POST(req: NextRequest) {
     budget: q?.budget, budgetFit: q ? budgetFit(estimateConfig, q).fit : undefined, visit: q?.preferred_date,
   };
   await listPush("leads", record);
+  // Phase 4: full first-party record for the ops console / outbox (server-only KV; never returned publicly).
+  await kv.set(`lead:data:${lead.eventId}`, JSON.stringify({ leadId: lead.eventId, receivedAt: record.at, lead: leadClean, routing: { market: routing.marketId, county: routing.county, pipeline: routing.pipeline, zone: routing.zoneId }, score, ghl: record.ghl }));
+  await kv.lpush("leads:index", lead.eventId);
+  if (record.ghl.error) await enqueue("ghl.lead", lead.eventId, `ghl.lead:${lead.eventId}`, { source: "lead-route", error: record.ghl.error }).catch(() => undefined);
   // Revenue attribution: remember first/last touch for this contact so a later won/paid CRM stage
   // can be credited to the right source (kept 400 days; first lead wins for first-touch).
   const attrKey = `attr:${externalContactId(lead.email, lead.phone)}`;
@@ -123,7 +131,8 @@ export async function POST(req: NextRequest) {
   const emailOk = owner.status === "fulfilled" && owner.value.sent;
   if (!ghlOk && !emailOk) { await listPush("lead_dead_letter", { record, lead: leadClean }); console.error("LEAD DELIVERY FAILED", lead.eventId); }
 
-  const result = { market: routing.marketId, tier: score.tier, marketStatus: routing.marketStatus };
+  // Public response allowlist (Phase 4): market, county, tier, status. Never prices, scores or internal notes.
+  const result = { market: routing.marketId, county: routing.county, tier: score.tier, marketStatus: routing.marketStatus };
   await kvSet(`${idemKey}:result`, result, 60 * 60 * 24);
   return NextResponse.json({ ok: true, ...result });
 }
