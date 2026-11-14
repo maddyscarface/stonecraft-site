@@ -16,7 +16,7 @@ export default function Page() {
           <div>
             <p className="eyebrow">The 1–2 Day Bathroom Refresh</p>
             <h2 className="mt-2 font-serif text-3xl">Fixed scope. Written price. Landlord-approved.</h2>
-            <p className="mt-4">Many renter refreshes come in around <strong>$1,500</strong>, depending on the bathroom's size and condition. Your written quote is the price—this figure is only a guide.</p>
+            <p className="mt-4">The price depends on the bathroom's size and condition. After we review your photos you get a written, fixed quote—nothing is booked until you and your landlord approve it.</p>
             <div className="mt-5"><Checklist items={["Tile and grout restoration", "Shower cleaning and restoration", "Caulking and grout repair where appropriate", "Optional roommate cost-sharing", "Landlord coordination when you authorise it"]} /></div>
           </div>
           <RoommateCalculator />

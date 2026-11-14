@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { abs, CONTENT_UPDATED } from "@/lib/seo";
 import { markets } from "@/config/markets";
 import { coreCities } from "@/config/cities";
+import { FL_COUNTIES } from "@/config/florida-areas";
 import { services } from "@/config/services";
 import { commercialSegments } from "@/config/segments";
 import { articles } from "@/config/resources";
@@ -33,6 +34,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Pre-launch markets are noindexed and excluded from the sitemap.
     ...markets.filter((m) => live.has(m.id)).flatMap((m) => [
       { path: `/${m.slug}`, lastModified: CONTENT_UPDATED, priority: 0.8 },
+      ...(m.id === "south-florida" ? FL_COUNTIES.map((k) => ({ path: `/${m.slug}/${k.slug}`, lastModified: CONTENT_UPDATED, priority: 0.75 })) : []),
       ...coreCities(m.id).map((c) => ({ path: `/${m.slug}/${c.slug}`, lastModified: CONTENT_UPDATED, priority: 0.7 })),
     ]),
   ];
