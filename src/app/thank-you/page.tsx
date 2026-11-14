@@ -3,6 +3,7 @@ import { CheckCircle2 } from "lucide-react";
 import { getMarket } from "@/config/markets";
 import { site } from "@/config/site";
 import { meta } from "@/lib/seo";
+import { WalkthroughCta } from "@/components/walkthrough/WalkthroughCta";
 
 export const metadata = meta({ title: "Thank You | StoneCraft", description: "We received your request.", path: "/thank-you", noindex: true });
 
@@ -19,6 +20,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         {q.photos === "0" && !commercial && <p className="mt-4 rounded bg-white p-4 text-sm shadow-card">No photos yet? Reply to our confirmation email{m.phoneE164 ? <> or text <a className="underline" href={`sms:${m.phoneE164}`}>{m.phoneDisplay}</a></> : <> or email <a className="underline" href={`mailto:${m.email}`}>{m.email}</a></>} with 3–4 photos so we can assess faster.</p>}
         {renter && <p className="mt-4 rounded bg-white p-4 text-sm shadow-card">While you wait: get the <Link className="underline" href="/renters/landlord-approval">landlord approval template</Link> ready. We'll need written approval before booking.</p>}
         {commercial && <p className="mt-4 rounded bg-white p-4 text-sm shadow-card">Next: we'll contact you to schedule a site walk. Meanwhile, here's our <Link className="underline" href="/commercial/capabilities">capabilities statement</Link> to share with your team.</p>}
+        {!renter && process.env.WALKTHROUGH_SELF_START === "true" && process.env.WALKTHROUGH_ENABLED !== "false" && <WalkthroughCta commercial={commercial} />}
         {m.status === "pre-launch" && <p className="mt-4 text-sm text-hunter/70">{m.statusNote}</p>}
         <div className="mt-8 flex flex-wrap justify-center gap-3"><Link href="/process" className="btn btn-outline">How the process works</Link><Link href="/resources" className="btn btn-hunter">Read our guides</Link></div>
       </div>

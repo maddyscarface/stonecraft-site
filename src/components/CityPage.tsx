@@ -5,8 +5,12 @@ import { LeadForm } from "@/components/LeadForm";
 import { getMarket, markets } from "@/config/markets";
 import { coreCities, findCity, type MarketId } from "@/config/cities";
 import { breadcrumbSchema, faqSchema, meta, serviceSchema } from "@/lib/seo";
+import { FL_COUNTIES, flCountyOfCity } from "@/config/florida-areas";
 
-export const cityParams = (market: string) => coreCities(market as MarketId).map((c) => ({ city: c.slug }));
+export const cityParams = (market: string) => [
+  ...coreCities(market as MarketId).map((c) => ({ city: c.slug })),
+  ...(market === "south-florida" ? FL_COUNTIES.map((k) => ({ city: k.slug })) : []),
+];
 
 function load(market: string, city: string) {
   const m = getMarket(market);
@@ -25,25 +29,27 @@ export function CityPage({ market, city }: { market: string; city: string }) {
   if (!d) notFound();
   const { m, c } = d;
   const zone = m.zones.find((z) => z.citySlugs.includes(c.slug));
+  const county = m.id === "south-florida" ? flCountyOfCity(c.slug) : undefined;
   const nearby = coreCities(m.id).filter((x) => x.slug !== c.slug && zone?.citySlugs.includes(x.slug)).slice(0, 6);
   const faq = [
-    { q: `Do you serve ${c.name}?`, a: `Yes${m.status === "pre-launch" ? ", subject to scheduling availability we're confirming now" : ""}. ${c.name} is part of our ${zone?.name ?? m.name} service area.` },
+    { q: `Do you serve ${c.name}?`, a: `Yes. ${c.name} is part of our ${county ? county.name : zone?.name ?? m.name} service area. Send your ZIP code with your photos and we'll confirm the scheduling day for your street.` },
     { q: `What surface problems are common in ${c.name}?`, a: `${c.housing} The issues we're most often asked about are: ${c.commonIssues.join("; ").toLowerCase()}.` },
     { q: "How soon can you come out?", a: "We start with photos, so you can get an assessment without a visit. Appointment availability depends on the scheduling day for your area; we'll offer the next openings when we reply." },
     { q: "Do you work in condos and managed buildings?", a: "Yes. Tell us about building rules—work hours, elevator reservations, insurance certificates—and we'll plan around them." },
   ];
   return (
     <>
-      <JsonLd data={serviceSchema({ name: "Tile, grout and stone restoration", description: c.intro, path: `/${m.slug}/${c.slug}`, areaServed: [`${c.name}, ${c.state}`] })} />
+      <JsonLd data={serviceSchema({ name: "Tile, grout and stone restoration", description: c.intro, path: `/${m.slug}/${c.slug}`, areaServed: [`${c.name}, ${c.state}`, ...(county ? [`${county.name}, FL`] : [])] })} />
       <JsonLd data={faqSchema(faq)} />
-      <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: m.name, path: `/${m.slug}` }, { name: c.name, path: `/${m.slug}/${c.slug}` }])} />
-      <PageHero image={m.id === "boston" ? "boston-brownstone-autumn" : "florida-palm"} eyebrow={m.brandName} title={`Tile, Grout & Stone Restoration in ${c.name}, ${c.state}`} sub={c.intro} primary={{ label: "Get a Photo Assessment", href: "#get-started" }} secondary={{ label: "Commercial Property Services", href: "/commercial" }} note={m.status === "pre-launch" ? m.statusNote : undefined} />
+      <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: m.name, path: `/${m.slug}` }, ...(county ? [{ name: county.name, path: `/${m.slug}/${county.slug}` }] : []), { name: c.name, path: `/${m.slug}/${c.slug}` }])} />
+      <PageHero image={m.id === "boston" ? "boston-brownstone-autumn" : "florida-palm"} eyebrow={county ? `${m.brandName} · ${county.name}` : m.brandName} title={`Tile, Grout & Stone Restoration in ${c.name}, ${c.state}`} sub={c.intro} primary={{ label: "Get a Photo Assessment", href: "#get-started" }} secondary={{ label: "Commercial Property Services", href: "/commercial" }} note={m.status === "pre-launch" ? m.statusNote : undefined} />
       <Section>
         <div className="grid gap-10 md:grid-cols-2">
           <div><Heading eyebrow={`${c.name} properties`} title="What we see most often" sub={c.housing} /><Checklist items={c.commonIssues} /></div>
           <div className="space-y-5">
             {c.neighborhoods && <div className="rounded-lg bg-white p-6 shadow-card"><p className="font-semibold">Areas within {c.name}</p><p className="mt-2 text-sm">{c.neighborhoods.join(" · ")}</p></div>}
-            <PriceGuide show={m.showPriceRanges} />
+            <PriceGuide />
+            {county && <div className="rounded-lg bg-white p-6 shadow-card"><p className="font-semibold">Part of {county.name}</p><p className="mt-2 text-sm"><Link className="underline underline-offset-2" href={`/${m.slug}/${county.slug}`}>See all of {county.name}</Link></p></div>}
             {c.localProof?.length ? <div className="rounded-lg bg-white p-6 shadow-card"><p className="font-semibold">Recent local work</p><ul className="mt-2 list-disc pl-5 text-sm">{c.localProof.map((p) => <li key={p}>{p}</li>)}</ul></div> : null}
           </div>
         </div>
