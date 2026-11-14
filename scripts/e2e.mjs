@@ -29,21 +29,27 @@ for (const p of PAGES) {
 }
 // SEO checks
 const flHtml = await (await fetch(BASE + "/south-florida/boca-raton")).text();
-ok("pre-launch FL page is noindex", /<meta name="robots" content="noindex/.test(flHtml));
+ok("FL city page is live: indexable + canonical, no prelaunch copy", !/noindex/.test(flHtml) && /rel="canonical" href="[^"]*\/south-florida\/boca-raton"/.test(flHtml) && !/availability (is )?being confirmed/i.test(flHtml));
+const pbHtml = await (await fetch(BASE + "/south-florida/palm-beach-county")).text();
+ok("Palm Beach County page renders with form + Illustrative label", /Palm Beach County/.test(pbHtml) && /id="get-started"/.test(pbHtml) && /Illustrative/.test(pbHtml));
+const bwHtml = await (await fetch(BASE + "/south-florida/broward-county")).text();
+ok("Broward County page renders with form", /Broward County/.test(bwHtml) && /id="get-started"/.test(bwHtml));
+const vis = (h) => h.replace(/<script[\s\S]*?<\/script>/g, "");
+ok("FL pages show no prices", !/\$\s?\d{2,}/.test(vis(flHtml + pbHtml + bwHtml)));
 const bosHtml = await (await fetch(BASE + "/boston/cambridge")).text();
 ok("Boston city page indexable + canonical", !/noindex/.test(bosHtml) && /rel="canonical" href="[^"]*\/boston\/cambridge"/.test(bosHtml));
 ok("no AggregateRating schema (no fake reviews)", !/AggregateRating/.test(bosHtml + flHtml));
 const sm = await (await fetch(BASE + "/sitemap.xml")).text();
-ok("sitemap includes Boston cities, excludes FL pre-launch", sm.includes("/boston/newton") && !sm.includes("/south-florida/"));
+ok("sitemap includes Boston cities and FL county + city pages", sm.includes("/boston/newton") && sm.includes("/south-florida/palm-beach-county") && sm.includes("/south-florida/broward-county") && sm.includes("/south-florida/boca-raton"));
 ok("robots disallows admin", (await (await fetch(BASE + "/robots.txt")).text()).includes("Disallow: /admin"));
 const llms = await (await fetch(BASE + "/llms.txt")).text();
 ok("llms.txt is a public facts index", llms.includes("# StoneCraft") && llms.includes("Not a franchise") && !llms.includes("/admin") && !llms.includes("/api/"));
 const homeHtml = await (await fetch(BASE + "/")).text();
 ok("home uses Phase 3 H1", /Tile, Grout and Stone Restoration in Greater Boston/.test(homeHtml));
 const orgLd = [...homeHtml.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1]).find((b) => b.includes("ProfessionalService") && b.includes("#organization")) || "";
-ok("home schema areaServed is live markets only", orgLd.includes("Greater Boston") && !/Palm Beach|Broward|Southeast Florida/.test(orgLd), orgLd.slice(0, 180));
+ok("home schema areaServed lists Greater Boston + Southeast Florida (both live)", orgLd.includes("Greater Boston") && /Southeast Florida/.test(orgLd), orgLd.slice(0, 180));
 const showerHtml = await (await fetch(BASE + "/services/shower-restoration")).text();
-ok("service schema does not advertise pre-launch Florida", !/Palm Beach County, FL/.test(showerHtml) && !/Broward County, FL/.test(showerHtml));
+ok("service schema advertises live Florida counties", /Palm Beach County/.test(showerHtml) && /Broward County/.test(showerHtml));
 const iconPaths = ["/favicon.ico", "/favicon.svg", "/icon.svg", "/icon-32.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest"];
 for (const icon of iconPaths) {
   const ir = await fetch(BASE + icon);
@@ -70,7 +76,8 @@ await page.click('[data-testid="next"]');
 // Qualifier step (project type may already be preselected from the surface)
 await page.getByTestId("q-project_type-shower").click().catch(() => {});
 await page.getByTestId("q-size-alcove").click();
-await page.getByTestId("q-budget-1_2k").click();
+// Phase 4: budget bands ship blank (no customer-visible prices) — the budget chip is gone.
+ok("no budget/price chips on the form", (await page.locator('[data-testid^="q-budget-"]').count()) === 0);
 await page.getByTestId("q-start-2weeks").click();
 const pref = new Date(Date.now() + 9 * 864e5).toISOString().slice(0, 10);
 if (await page.locator('[data-testid="q-preferred_date"]').count()) {
@@ -104,8 +111,10 @@ ok("attribution persisted (utm + gclid)", attr.utm_campaign === "bos_shower" && 
 
 // Renter flow + roommate calculator
 await page.goto(BASE + "/renters", { waitUntil: "networkidle" });
+ok("roommate calculator has no pre-filled price", (await page.locator('[data-testid="rc-share"]').first().textContent()) === "—");
+await page.locator('#rc-price').first().fill("1500");
 const share = await page.locator('[data-testid="rc-share"]').first().textContent();
-ok("roommate calculator default ($1,500 / 3)", share === "$500", share);
+ok("roommate calculator splits the customer's own quote ($1,500 / 3)", share === "$500", share);
 await page.locator('[data-testid="roommate-calculator"] button[aria-label="More people"]').first().click();
 ok("roommate calculator updates (/4)", (await page.locator('[data-testid="rc-share"]').first().textContent()) === "$375");
 await page.screenshot({ path: `${shots}/renters.png`, fullPage: true });
@@ -121,7 +130,9 @@ ok("duplicate submit is idempotent", j2.duplicate === true, JSON.stringify(j2));
 const bad = await fetch(BASE + "/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ variant: "commercial", firstName: "x", email: "bad", phone: "1", zip: "1", contactConsent: true, eventId: "lead_bad_123456" }) });
 ok("invalid commercial lead rejected 422", bad.status === 422);
 const flLead = await fetch(BASE + "/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ variant: "residential", firstName: "F", email: "f@example.com", phone: "5615550101", zip: "33432", contactConsent: true, eventId: `lead_fl_${Date.now()}`, startedAt: Date.now() - 10000 }) });
-ok("FL lead routed to pre-launch market", (await flLead.json()).marketStatus === "pre-launch");
+const flJ = await flLead.json();
+ok("FL lead (Boca 33432) routed to live market + Palm Beach County", flJ.market === "south-florida" && flJ.marketStatus === "live" && flJ.county === "palm-beach", JSON.stringify(flJ));
+ok("public lead response is allowlisted (no score/price/GHL internals)", Object.keys(flJ).every((k) => ["ok", "market", "county", "tier", "marketStatus", "duplicate", "leadId"].includes(k)), Object.keys(flJ).join(","));
 
 // Commercial flow (UI)
 await page.goto(BASE + "/commercial-site-assessment?segment=hospitals", { waitUntil: "networkidle" });
@@ -134,7 +145,8 @@ await page.fill('[data-testid="jobTitle"]', "Director of Facilities");
 await page.click('[data-testid="next"]');
 ok("segment preselected from URL", (await page.locator('[data-testid="segment"]').inputValue()) === "hospitals");
 await page.click('[data-testid="next"]');
-await page.selectOption("select >> nth=0", "25to75k");
+ok("commercial form has no dollar budget brackets", !/\$\d/.test(await page.locator('[data-testid="budget-status"]').innerText()));
+await page.selectOption('[data-testid="budget-status"]', "approved");
 await page.click('[data-testid="next"]');
 await page.waitForTimeout(3200);
 await page.click('[data-testid="contact-consent"]');

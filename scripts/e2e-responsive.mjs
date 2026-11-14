@@ -11,7 +11,7 @@ mkdirSync(SHOTS, { recursive: true });
 
 const WIDTHS = [320, 360, 390, 414, 768, 834, 1024, 1280, 1440, 1920];
 const EXTRA = [{ w: 844, h: 390, name: "844x390" }];
-const PAGES = ["/", "/free-assessment", "/commercial", "/services/shower-restoration", "/resources", "/boston"];
+const PAGES = ["/", "/free-assessment", "/commercial", "/services/shower-restoration", "/resources", "/boston", "/south-florida/palm-beach-county", "/south-florida/broward-county"];
 const MIN_TAP = 44;
 const MIN_TEXT = 12;
 
