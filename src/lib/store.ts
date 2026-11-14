@@ -80,3 +80,13 @@ export async function rateLimit(id: string, limit: number, windowSec: number) {
   const n = await kvIncr(`rl:${id}:${Math.floor(Date.now() / 1000 / windowSec)}`, windowSec);
   return { ok: n <= limit, count: n };
 }
+
+/** Phase 4: delete a key (used by the ops session / outbox adapter in src/lib/server/kv.ts). */
+export async function kvDel(key: string) {
+  if (kvConfigured) { await redis(["DEL", key]); return; }
+  mem.__scMem!.delete(key);
+  mem.__scLists!.delete(key);
+}
+
+/** Test helper: clear the in-memory store. */
+export function __resetMemoryStore() { mem.__scMem!.clear(); mem.__scLists!.clear(); }
