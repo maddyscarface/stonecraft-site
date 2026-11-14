@@ -72,7 +72,7 @@ export function scoreLead(lead: LeadInput, ctx: { inActiveZone: boolean; inMarke
     case "commercial":
       add("commercial_base", "commercial request");
       if (lead.decisionRole === "decision_maker") add("commercial_decision_maker", "decision maker");
-      if (lead.budget && ["25to75k", "75to250k", "250kplus"].includes(lead.budget)) add("commercial_budget_25k_plus", "budget $25k+");
+      if (lead.budget && ["approved", "25to75k", "75to250k", "250kplus"].includes(lead.budget)) add("commercial_budget_25k_plus", lead.budget === "approved" ? "budget approved" : "legacy budget bracket 25k+");
       if (lead.timeline && ["30d", "90d"].includes(lead.timeline)) add("commercial_timeline_90d", "timeline within 90 days");
       if (lead.buildings > 1) add("commercial_multi_building", "multiple buildings");
       break;
