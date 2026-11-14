@@ -14,7 +14,7 @@ function count<T>(rows: T[], key: (r: T) => string | null | undefined) {
 }
 
 function Table({ title, rows }: { title: string; rows: [string, number | string][] }) {
-  return <div className="rounded-lg bg-white p-5 shadow-card"><h3 className="mb-3 font-semibold">{title}</h3>{rows.length ? <table className="w-full text-sm"><tbody>{rows.slice(0, 12).map(([k, v]) => <tr key={k} className="border-t border-cream-dark"><td className="py-1.5">{k}</td><td className="py-1.5 text-right font-semibold tabular-nums">{v}</td></tr>)}</tbody></table> : <p className="text-sm text-hunter/60">No data yet.</p>}</div>;
+  return <div className="rounded-lg bg-white p-5 shadow-card"><h3 className="mb-3 font-semibold">{title}</h3>{rows.length ? <table className="w-full text-sm"><tbody>{rows.slice(0, 12).map(([k, v]) => <tr key={k} className="border-t border-cream-dark"><td className="py-1.5 pr-3 [overflow-wrap:anywhere]">{k}</td><td className="py-1.5 text-right font-semibold tabular-nums">{v}</td></tr>)}</tbody></table> : <p className="text-sm text-hunter/60">No data yet.</p>}</div>;
 }
 
 function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {

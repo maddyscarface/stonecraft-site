@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { coverSizes, heroQuality, photoQuality } from "@/lib/image-sizes";
 import { photo, type PhotoKey } from "@/config/photos";
 
 /**
@@ -10,8 +11,8 @@ export function Photo({ k, className = "", sizes = "100vw", priority, fill = tru
   return (
     <>
       {fill
-        ? <Image src={p.src} alt={alt ?? p.alt} fill sizes={sizes} priority={priority} className={`object-cover ${className}`} />
-        : <Image src={p.src} alt={alt ?? p.alt} width={p.width} height={p.height} sizes={sizes} priority={priority} className={className} />}
+        ? <Image src={p.src} alt={alt ?? p.alt} fill sizes={coverSizes(sizes)} quality={priority ? heroQuality : photoQuality} priority={priority} className={`object-cover ${className}`} />
+        : <Image src={p.src} alt={alt ?? p.alt} width={p.width} height={p.height} sizes={sizes} quality={priority ? heroQuality : photoQuality} priority={priority} className={className} />}
       {note && <span className="stock-note pointer-events-none absolute bottom-2 right-3 z-[1]">Illustrative photo</span>}
     </>
   );
