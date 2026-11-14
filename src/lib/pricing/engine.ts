@@ -71,6 +71,8 @@ export function buildQuote(input: QuoteInput): Quote {
     const row = sheet.rows.find((r) => r.service === l.service);
     if (!row) { warnings.push(`No price row for "${l.service}" — add it or quote manually.`); continue; }
     if (!(l.quantity > 0)) { warnings.push(`Quantity missing for "${row.label}".`); continue; }
+    // Phase 4: price books ship blank. An unset rate is never guessed.
+    if (!(row.rate > 0)) { warnings.push(`Rate not set for "${row.label}" — owner must enter it.`); continue; }
     const raw = row.unit === "flat" ? row.rate : row.rate * l.quantity;
     const subtotal = Math.max(raw, row.minCharge);
     lines.push({
@@ -99,7 +101,7 @@ export function buildQuote(input: QuoteInput): Quote {
   // Modifiers apply additively to the subtotal (predictable, easy to explain).
   for (const m of modifiers) m.amount = round2((subtotal * m.pct) / 100);
   let total = round2(subtotal + modifiers.reduce((s, m) => s + m.amount, 0));
-  if (lines.length && total < sheet.projectMinimum) {
+  if (lines.length && sheet.projectMinimum > 0 && total < sheet.projectMinimum) {
     warnings.push(`Project minimum of $${sheet.projectMinimum} applied.`);
     total = sheet.projectMinimum;
   }
