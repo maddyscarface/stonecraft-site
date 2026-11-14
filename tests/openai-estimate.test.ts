@@ -4,7 +4,20 @@ import { buildOpenAiEvent, buildUser, normName, normPhone, openAiStageEvent, sen
 import { oaiqSnippet } from "@/lib/openai-ads/client";
 import { budgetFit, calendarLink, qualifierFields, qualifierScore, sanitizeQualifiers, typicalRange } from "@/lib/estimate/qualifiers";
 import { renderLeadBrief } from "@/lib/estimate/lead-brief";
-import { estimateConfig as cfg, briefTheme } from "@/config/estimate";
+import { estimateConfig, briefTheme } from "@/config/estimate";
+import type { EstimateConfig } from "@/lib/estimate/qualifiers";
+
+// Phase 4: the shipped config has NO typical ranges or budget bands (customers never see prices). The qualifier
+// engine is exercised with a clearly labelled SYNTHETIC test fixture layered on the real config.
+const cfg: EstimateConfig = {
+  ...estimateConfig,
+  projectTypes: estimateConfig.projectTypes.map((p) => ({ ...p, sizes: p.sizes.map((sz) => ({ ...sz, typical: [1000, 2000] as [number, number] })) })),
+  budgetBands: [
+    { id: "fx_lt1k", label: "TEST under 1k", min: 0, max: 999 },
+    { id: "fx_1to3k", label: "TEST 1k–3k", min: 1000, max: 2999 },
+    { id: "fx_3kplus", label: "TEST 3k+", min: 3000, max: null },
+  ],
+};
 
 const h = (s: string) => createHash("sha256").update(s).digest("hex");
 
@@ -70,9 +83,13 @@ describe("OpenAI Conversions API payload", () => {
 });
 
 describe("pre-estimate qualifiers", () => {
+  it("ships no customer-visible price ranges or budget bands", () => {
+    expect(estimateConfig.budgetBands).toEqual([]);
+    for (const p of estimateConfig.projectTypes) for (const sz of p.sizes) expect(sz.typical).toBeUndefined();
+  });
   const pt = cfg.projectTypes[0];
   const size = pt.sizes[Math.min(1, pt.sizes.length - 1)];
-  const [lo, hi] = size.typical;
+  const [lo, hi] = size.typical!;
 
   it("drops unknown ids and keeps valid answers", () => {
     const q = sanitizeQualifiers(cfg, { project_type: pt.id, size: size.id, budget: "nope", start: cfg.startOptions[0].id, favorites: ["x", cfg.favorites.options[0]?.id], preferred_date: "2026-13-45", pricing_views: 3, saw_pricing: true, address: " 1 Main St " })!;

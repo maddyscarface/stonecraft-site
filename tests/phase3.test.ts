@@ -38,12 +38,13 @@ afterEach(() => {
 });
 
 describe("Phase 3 market controls", () => {
-  it("keeps Greater Boston live and Southeast Florida pre-launch by default", () => {
+  // Phase 4: Southeast Florida is owner-confirmed LIVE (MARKET_FL_PAUSED=true is the kill switch).
+  it("keeps Greater Boston live and Southeast Florida live by default (Phase 4)", () => {
     expect(markets.find((m) => m.id === "boston")?.status).toBe("live");
-    expect(markets.find((m) => m.id === "south-florida")?.status).toBe("pre-launch");
-    expect(liveMarkets().map((m) => m.id)).toEqual(["boston"]);
+    expect(markets.find((m) => m.id === "south-florida")?.status).toBe("live");
+    expect(liveMarkets().map((m) => m.id)).toEqual(["boston", "south-florida"]);
     expect(liveAreaServed().join(" ")).toMatch(/Greater Boston/);
-    expect(liveAreaServed().join(" ")).not.toMatch(/Florida|Palm Beach|Broward/);
+    expect(liveAreaServed().join(" ")).toMatch(/Palm Beach|Broward|Southeast Florida/);
   });
 
   it("does not conflate StoneCraft with a franchise", () => {
@@ -99,8 +100,8 @@ describe("Phase 3 SEO helpers", () => {
     const svc = JSON.stringify(serviceSchema({ name: "Shower Restoration", description: "Test", path: "/services/shower-restoration" }));
     expect(org).toContain("ProfessionalService");
     expect(org).toContain("Greater Boston");
-    expect(org).not.toMatch(/Palm Beach|Broward|Southeast Florida/);
-    expect(svc).not.toMatch(/Palm Beach|Broward|Southeast Florida/);
+    expect(org).toMatch(/Palm Beach|Broward|Southeast Florida/);
+    expect(svc).toMatch(/Palm Beach|Broward|Southeast Florida/);
     expect(org).not.toMatch(/AggregateRating|"review"/);
   });
 
@@ -109,7 +110,9 @@ describe("Phase 3 SEO helpers", () => {
     expect(text).toContain("# StoneCraft");
     expect(text).toContain("/free-assessment");
     expect(text).toContain("/commercial-site-assessment");
-    expect(text.toLowerCase()).toContain("availability is being confirmed");
+    expect(text.toLowerCase()).not.toContain("availability is being confirmed");
+    expect(text).toContain("/south-florida/palm-beach-county");
+    expect(text).toContain("/south-florida/broward-county");
     expect(text).not.toMatch(/\/admin|\/api\/|llms private/i);
     expect(text).not.toContain("vercel.app");
   });
@@ -133,8 +136,9 @@ describe("Phase 3 content", () => {
     expect(services.find((s) => s.slug === "shower-restoration")!.seoTitle.length).toBeLessThanOrEqual(60);
   });
 
-  it("does not invent reviews, prices in schema, or Florida as a live area in the inventory", () => {
-    expect(seoInventory.filter((r) => r.path.startsWith("/south-florida")).every((r) => r.indexableInProduction === false)).toBe(true);
+  it("does not invent reviews or prices in schema, and lists live Florida pages as indexable (Phase 4)", () => {
+    expect(seoInventory.filter((r) => r.path.startsWith("/south-florida")).every((r) => r.indexableInProduction === true)).toBe(true);
+    expect(seoInventory.some((r) => r.path === "/south-florida/palm-beach-county")).toBe(true);
     expect(seoInventory.find((r) => r.path === "/")?.indexableInProduction).toBe(true);
   });
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { markets } from "@/config/markets";
 import { draftPriceSheets } from "@/config/pricing";
+import { TEST_FIXTURE_SHEET } from "./fixtures/test-price-sheet";
 import { availableSlots, checkBooking, detectZone, effectiveZone, nextDateFor, suggestSlots, weekdayOf, localParts } from "@/lib/scheduling/engine";
 import type { Appointment } from "@/lib/scheduling/types";
 import { buildQuote, customerView, splitCost } from "@/lib/pricing/engine";
@@ -14,7 +15,8 @@ import { metaPayload } from "@/lib/tracking/server";
 
 const boston = markets.find((m) => m.id === "boston")!;
 const fl = markets.find((m) => m.id === "south-florida")!;
-const bosSheet = draftPriceSheets.find((s) => s.marketId === "boston")!;
+// Phase 4: shipped sheets are blank; the engine is exercised with a clearly labelled synthetic fixture.
+const bosSheet = TEST_FIXTURE_SHEET;
 
 describe("scheduling", () => {
   it("detects zones by ZIP, town and neighbourhood", () => {
@@ -92,6 +94,15 @@ describe("scheduling", () => {
 });
 
 describe("pricing", () => {
+  it("ships blank price sheets (owner enters rates; nothing guessed)", () => {
+    for (const sh of draftPriceSheets) {
+      expect(sh.approved).toBe(false);
+      for (const r of sh.rows) { expect(r.rate).toBe(0); expect(r.minCharge).toBe(0); }
+      expect(sh.projectMinimum).toBe(0);
+    }
+    const q = buildQuote({ sheet: draftPriceSheets[0], lines: [{ service: "caulk", quantity: 10 }] });
+    if (q.kind === "estimate") { expect(q.total).toBe(0); expect(q.warnings.join(" ")).toMatch(/Rate not set/); }
+  });
   it("builds an estimate with min charges, modifiers and deposits", () => {
     const q = buildQuote({ sheet: bosSheet, zip: "02116", lines: [{ service: "shower_restoration", quantity: 1 }, { service: "caulk", quantity: 10 }] });
     expect(q.kind).toBe("estimate");
@@ -167,7 +178,7 @@ describe("leads", () => {
     const s = scoreLead(r.data, route);
     expect(s.tier).toBe("hot");
     const fl = parseLead({ ...baseLead, zip: "33432", variant: "residential" });
-    if (fl.success) expect(routeLead(fl.data)).toMatchObject({ marketId: "south-florida", marketStatus: "pre-launch" });
+    if (fl.success) expect(routeLead(fl.data)).toMatchObject({ marketId: "south-florida", marketStatus: "live", county: "palm-beach" });
   });
   it("maps market by ZIP range fallback", () => {
     expect(marketForZip("02720")?.id).toBe("boston");
