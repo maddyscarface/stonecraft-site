@@ -107,11 +107,10 @@ const flow_stonecraft = async (page, base, ok) => {
   await page.getByTestId("next").click(); await slow(page);
   ok("project type pre-selected from surfaces", (await page.getByTestId("q-project_type-shower").getAttribute("aria-pressed")) === "true");
   await page.getByTestId("q-size-alcove").click();
-  const range = await page.getByTestId("typical-range").innerText();
-  ok("typical range shown", range.includes("$1,200–$1,700"), range);
-  await page.getByTestId("q-budget-lt500").click();
-  ok("below-range note shown", await page.getByTestId("budget-below").isVisible());
-  await page.getByTestId("q-budget-1_2k").click(); await page.getByTestId("q-start-2weeks").click();
+  // Phase 4: StoneCraft shows NO customer-visible prices — no typical range, no budget bands.
+  ok("no typical price range shown", (await page.getByTestId("typical-range").count()) === 0);
+  ok("no budget/price chips", (await page.locator('[data-testid^="q-budget-"]').count()) === 0);
+  await page.getByTestId("q-start-2weeks").click();
   await page.fill('[data-testid="q-preferred_date"]', date); await page.selectOption('[data-testid="q-preferred_window"]', "1000");
   await page.getByTestId("q-favorites-bright_white").click();
   await page.screenshot({ path: "/tmp/shot-stonecraft-qualifiers.png" });
@@ -233,7 +232,7 @@ async function crm(name, port, path, header, body, expectType) {
 }
 if (want("deckcraft")) await crm("deckcraft", 3102, "/api/crm-webhook", "x-dc-secret", { stage: "estimate_booked", lead_id: "lead_1", opportunity_id: "opp_1", email: "a@example.com" }, "appointment_scheduled");
 if (want("deckcraft")) await crm("deckcraft", 3102, "/api/crm-webhook", "x-dc-secret", { stage: "won", lead_id: "lead_1", opportunity_id: "opp_1", email: "a@example.com", value: 28500 }, "job_won");
-if (want("stonecraft")) await crm("stonecraft", 3104, "/api/crm/webhook", "x-sc-webhook-secret", { stage: "Estimate Scheduled", opportunityId: "o_2", email: "b@example.com" }, "appointment_scheduled");
+if (want("stonecraft")) await crm("stonecraft", 3104, "/api/crm/webhook", "x-sc-webhook-secret", { stage: "Site walkthrough", opportunityId: "o_2", email: "b@example.com" }, "appointment_scheduled"); // Build 04 renamed the GHL stages ("Estimate Scheduled" no longer exists)
 if (want("portfolioworks")) await crm("portfolioworks", 3103, "/api/crm-webhook", "x-pw-webhook-secret", { stage: "site_walk_booked", eventId: "evt_missing", email: "c@example.com" }, "appointment_scheduled");
 if (want("buildghana")) await crm("buildghana", 3101, "/api/crm-webhook", "x-webhook-secret", { event: "contract_signed", lead_id: "lead_xyz_1", email: "d@example.com", value: 120000 }, "job_won");
 

@@ -8,25 +8,29 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 export function middleware(req: NextRequest) {
   const p = req.nextUrl.pathname;
-  const hasCred = Boolean(req.cookies.get("sc_admin")?.value || req.headers.get("authorization"));
-  if (!hasCred && p.startsWith("/api/admin/") && p !== "/api/admin/login") {
+  const hasCred = Boolean(req.cookies.get("sc_admin")?.value || req.cookies.get("sc_ops")?.value || req.headers.get("authorization"));
+  // Phase 4 ops console signs in on its own page (/admin/ops) via /api/admin/ops/session.
+  const opsLogin = p === "/admin/ops" || p === "/api/admin/ops/session";
+  if (!hasCred && !opsLogin && p.startsWith("/api/admin/") && p !== "/api/admin/login") {
     return NextResponse.json({ error: "unauthorised" }, { status: 401, headers: { "X-Robots-Tag": "noindex, nofollow", "Cache-Control": "no-store" } });
   }
-  if (!hasCred && p.startsWith("/admin/")) {
+  if (!hasCred && !opsLogin && p.startsWith("/admin/")) {
     const res = NextResponse.redirect(new URL("/admin", req.url));
     res.headers.set("X-Robots-Tag", "noindex, nofollow");
     return res;
   }
   const res = NextResponse.next();
-  const flPrelaunch = (process.env.MARKET_FL_STATUS ?? "pre-launch") !== "live";
+  // FL is owner-confirmed live (Phase 4); only MARKET_FL_PAUSED=true (kill switch) noindexes it again.
+  const flPrelaunch = (process.env.MARKET_FL_PAUSED || "").trim().toLowerCase() === "true";
   const prelaunchMarket = flPrelaunch && (p === "/south-florida" || p.startsWith("/south-florida/"));
-  const privateOrThankYou = p.startsWith("/admin") || p.startsWith("/api") || p === "/thank-you" || p.startsWith("/thank-you/");
+  const privateOrThankYou = p.startsWith("/admin") || p.startsWith("/api") || p === "/thank-you" || p.startsWith("/thank-you/") || p === "/walkthrough" || p.startsWith("/walkthrough/");
   if (privateOrThankYou || prelaunchMarket) {
     res.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
   if (privateOrThankYou) {
     res.headers.set("Cache-Control", "no-store");
   }
+  if (p === "/walkthrough" || p.startsWith("/walkthrough/")) res.headers.set("Referrer-Policy", "no-referrer");
   return res;
 }
-export const config = { matcher: ["/admin/:path*", "/api/:path*", "/thank-you", "/thank-you/:path*", "/south-florida", "/south-florida/:path*"] };
+export const config = { matcher: ["/admin/:path*", "/api/:path*", "/thank-you", "/thank-you/:path*", "/walkthrough", "/walkthrough/:path*", "/south-florida", "/south-florida/:path*"] };
