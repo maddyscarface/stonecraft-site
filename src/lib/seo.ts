@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { site } from "@/config/site";
-import { CONTACT_EMAIL, type Market, liveAreaServed } from "@/config/markets";
+import { CONTACT_EMAIL, type Market, liveAreaServed, liveMarkets, isMarketLive } from "@/config/markets";
+import { FL_COUNTIES } from "@/config/florida-areas";
 import type { FAQ } from "@/config/services";
 
 /**
@@ -10,7 +11,7 @@ import type { FAQ } from "@/config/services";
 export const INTENDED_PRODUCTION_ORIGIN = "https://stonecraftpros.com";
 
 /** Content date used in the sitemap for Phase 3 updates (not `new Date()` at build time). */
-export const CONTENT_UPDATED = "2026-11-13";
+export const CONTENT_UPDATED = "2026-11-14";
 
 export function canonicalOrigin(): string {
   const explicit = (process.env.NEXT_PUBLIC_CANONICAL_ORIGIN ?? "").replace(/\/$/, "");
@@ -132,7 +133,7 @@ export function webPageSchema(opts: { title: string; description: string; path: 
  * (no storefront). areaServed lists configured cities. aggregateRating is omitted until
  * real review data exists. Callers must not emit this for pre-launch markets.
  */
-export function businessSchema(m: Market, cityNames: string[]) {
+export function businessSchema(m: Market, cityNames: string[], countyNames: string[] = []) {
   return {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
@@ -142,7 +143,10 @@ export function businessSchema(m: Market, cityNames: string[]) {
     ...(m.phoneE164 ? { telephone: m.phoneE164 } : {}),
     email: m.email,
     description: site.supporting,
-    areaServed: cityNames.map((name) => ({ "@type": "City", name: `${name}, ${m.state}` })),
+    areaServed: [
+      ...countyNames.map((name) => ({ "@type": "AdministrativeArea", name: `${name}, ${m.state}` })),
+      ...cityNames.map((name) => ({ "@type": "City", name: `${name}, ${m.state}` })),
+    ],
     address: { "@type": "PostalAddress", addressRegion: m.state, addressCountry: "US" },
     parentOrganization: { "@id": abs("/#organization") },
     knowsAbout: ["Tile restoration", "Grout cleaning", "Grout colour sealing", "Shower restoration", "Marble restoration", "Natural stone polishing", "Caulk replacement"],
@@ -200,14 +204,14 @@ export function llmsTxt(): string {
   const origin = canonicalOrigin();
   return `# StoneCraft
 
-> Tile, grout, shower and natural stone restoration in Greater Boston and eligible Southeast Florida markets. Independently owned and operated. Not a franchise.
+> Tile, grout, shower and natural stone restoration in Greater Boston and Southeast Florida (Palm Beach County and Broward County). Independently owned and operated. Not a franchise.
 
 - Website: ${origin}/
 - Contact: ${origin}/contact
 - Email: ${CONTACT_EMAIL}
 - Services: See the public services linked from the website navigation.
-- Geography: Greater Boston is currently served. Southeast Florida availability is being confirmed and must not be assumed to be live coverage. See ${origin}/service-areas.
-- Accuracy: Pricing and availability are subject to individual assessment. No legal or engineering clearance is implied unless explicitly documented. Licensed stock photography is illustrative, not project photography.
+- Geography: ${liveMarkets().map((m) => m.id === "south-florida" ? "Southeast Florida (Palm Beach County and Broward County)" : m.name).join(" and ")} are served. Exact streets are confirmed by ZIP code at assessment. See ${origin}/service-areas.
+- Accuracy: No prices are published; every price is a written quote after owner review. No legal or engineering clearance is implied unless explicitly documented. Licensed stock photography is illustrative, not project photography.
 
 ## Public information
 - Home: ${origin}/
@@ -217,9 +221,10 @@ export function llmsTxt(): string {
 - Resources and guides: ${origin}/resources
 - Process: ${origin}/process
 - Service areas: ${origin}/service-areas
-- About: ${origin}/about
+${liveMarkets().map((m) => `- ${m.name}: ${origin}/${m.slug}`).join("\n")}
+${isMarketLive("south-florida") ? FL_COUNTIES.map((k) => `- ${k.name}, FL: ${origin}/south-florida/${k.slug}`).join("\n") + "\n" : ""}- About: ${origin}/about
 
-Link only to canonical, verified public pages from sitemap.xml. Do not assume every staging or pre-launch market page is an active service area.
+Link only to canonical, verified public pages from sitemap.xml. Staging hosts are not canonical.
 
 ## Exclusions
 Private cases, customer files, internal admin dashboards, API endpoints and customer inquiries are not public reference material.
