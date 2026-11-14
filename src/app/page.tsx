@@ -18,16 +18,16 @@ export const metadata = meta({
 });
 
 const FAQ = [
-  { q: "How does the free photo assessment work?", a: "Send 3–4 photos through our form. We review them and reply with what we think is possible, what it would involve and an estimated price range. If we need to see it in person, we'll say so." },
+  { q: "How does the free photo assessment work?", a: "Send 3–4 photos through our form. We review them and reply with what we think is possible, what it would involve and whether we can quote from photos or need a short visit. Any price comes as a written quote after review." },
   { q: "Can every bathroom be restored instead of replaced?", a: "No. If tile is loose, walls are soft or there's water damage behind the tile, restoration isn't the right answer. We'll tell you before you spend anything." },
   { q: "How long does a typical job take?", a: "Many residential jobs are completed in a day; some need a second visit for curing or repairs. Your quote states the expected schedule." },
   { q: "Do you work with renters?", a: "Yes, with written landlord approval before any work is booked. We can coordinate with your landlord if you authorise us to." },
   { q: "Do you serve commercial facilities?", a: "Yes. We scope hospitals, universities, hotels, HOAs and multifamily properties by area, schedule work into permitted windows and document completion." },
-  { q: "Which areas do you serve?", a: "Greater Boston is currently served, including Boston, Cambridge, Brookline, Newton, MetroWest and nearby towns listed on our service-area pages. Southeast Florida (Palm Beach and Broward counties) is pre-launch: availability is being confirmed, and a landing page does not mean that market is already live." },
+  { q: "Which areas do you serve?", a: "Greater Boston (Boston, Cambridge, Brookline, Newton, MetroWest and nearby towns) and Southeast Florida (Palm Beach County and Broward County). Our service-area pages list the main towns; send your ZIP code and we'll confirm the scheduling day for your street." },
   { q: "Can stained grout be restored, or does it need replacement?", a: "Stained grout can often be cleaned and colour-sealed if the joints are sound. Regrouting is needed when grout is crumbling, missing, or stays damp because of a leak. Photos usually show which path is realistic; loose tile or soft walls mean restoration is not the answer." },
   { q: "What is the difference between grout colour sealing and regular sealing?", a: "A clear or impregnating sealer helps resist stains but leaves the existing colour, including blotches. Colour sealing applies a pigmented, protective coating so grout lines look uniform. Colour sealants generally will not bond reliably to epoxy grout; we confirm grout type from photos or a test area." },
   { q: "Can scratched marble be refinished without a high-gloss finish?", a: "Yes. Honing can remove light scratches and etching and leave a matte or satin finish. Polishing is optional and only used when a higher sheen is requested and suitable for the stone. We set the finish from a test area rather than forcing a glossy look." },
-  { q: "How do photo-based estimates work, and when is an onsite review required?", a: "Most residential assessments start with 3–4 photos and a written range. An onsite review is required when photos cannot confirm substrate condition, hollow tile, moisture, unusual materials, or a complex commercial scope. We never promise that complex work can be priced or completed from photos alone." },
+  { q: "How do photo-based estimates work, and when is an onsite review required?", a: "Most residential assessments start with 3–4 photos, and the written quote follows review. An onsite review is required when photos cannot confirm substrate condition, hollow tile, moisture, unusual materials, or a complex commercial scope. We never promise that complex work can be priced or completed from photos alone." },
   { q: "How do commercial restoration projects stay operational during work?", a: "We scope by area, phase restroom or corridor closures so an alternative remains available, and schedule into permitted windows such as nights, weekends or academic breaks. Cure times are built into the plan. Facility rules are written into the scope after a site walk." },
 ];
 
@@ -95,8 +95,7 @@ export default function HomePage() {
                 <div className="absolute inset-0 transition duration-700 group-hover:scale-[1.04]"><Photo k={marketImage[m.id]} sizes="(min-width:768px) 25vw, 50vw" /></div>
                 <div className="photo-shade absolute inset-0" />
                 <div className="relative">
-                  {m.status === "pre-launch" && <p className="mb-3 inline-block bg-bronze-light px-2 py-1 text-[12px] font-bold uppercase tracking-[0.16em] text-basalt">Availability being confirmed</p>}
-                  <p className="font-serif text-3xl leading-tight text-bone">{m.name}</p>
+                                    <p className="font-serif text-3xl leading-tight text-bone">{m.name}</p>
                   <p className="mt-2 text-sm text-bone/75">{m.serviceAreaLabel}</p>
                   <span className="link-arrow mt-4 text-bronze-light">Explore <ArrowUpRight size={14} /></span>
                 </div>
@@ -244,12 +243,12 @@ export default function HomePage() {
 
       {/* Service areas preview */}
       <Section tone="white" className="!py-16">
-        <Heading eyebrow="Where we work" title="Greater Boston is served now. Southeast Florida is being confirmed." />
+        <Heading eyebrow="Where we work" title="Greater Boston and Southeast Florida" />
         {markets.map((m) => (
           <div key={m.id} className="mt-8 first:mt-0">
             <div className="mb-3 flex flex-wrap items-baseline gap-3">
               <h3 className="font-serif text-2xl">{m.name}</h3>
-              <p className="text-sm text-basalt/60">{m.status === "live" ? m.serviceAreaLabel : "Availability being confirmed — a page here is not a launch announcement."}</p>
+              <p className="text-sm text-basalt/60">{m.serviceAreaLabel}</p>
             </div>
             <div className="flex flex-wrap gap-2">{coreCities(m.id).map((c) => <Link key={c.slug} href={`/${c.market}/${c.slug}`} className="border border-basalt/20 px-4 py-2 text-sm transition hover:border-basalt hover:bg-basalt hover:text-bone">{c.name}</Link>)}</div>
           </div>

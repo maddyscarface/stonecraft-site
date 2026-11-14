@@ -7,7 +7,7 @@ export const metadata = meta({ title: "1–2 Day Bathroom Refresh — Tile, Grou
 
 const FAQ = [
   { q: "Is it really one to two days?", a: "Most standard bathrooms are completed in one to two working days, including cure time between steps. Larger or more damaged bathrooms can take longer; your quote will say." },
-  { q: "What does it cost?", a: "Many refreshes are around $1,500 in Greater Boston, but the price depends on size and condition. You get a fixed written price before anything is booked." },
+  { q: "What does it cost?", a: "It depends on size and condition, so we don't publish a price list. After we review your photos you get a fixed written price before anything is booked." },
   { q: "What isn't included?", a: "Tile replacement, plumbing, fixtures, glass doors and wall repairs. If we see a problem that needs one of those, we'll tell you." },
   { q: "I rent. Can I book it?", a: "Yes, with written approval from your landlord or property manager. We can coordinate approval if you authorise us." },
 ];
