@@ -65,6 +65,7 @@ export function buildContactPayload(lead: LeadInput, routing: Routing, score: Sc
     sc_external_id: externalContactId(lead.email, lead.phone),
     sc_market: routing.marketId ?? "unknown",
     sc_zone: routing.zoneName ?? "",
+    sc_county: routing.county ?? "",
     sc_customer_type: lead.customerType,
     sc_lead_score: score.score,
     sc_lead_tier: score.tier,
@@ -201,10 +202,10 @@ export async function pushLeadToGhl(lead: LeadInput, routing: Routing, score: Sc
 export const pipelineStages = PIPELINES;
 
 /** Intent-data contact upsert (tags only, no opportunity, no workflows). Dry-run without a token. */
-export async function upsertIntentContact(s: { email?: string; phone?: string; firstName?: string; lastName?: string; company?: string; zip?: string; state?: string }, tags: string[]): Promise<GhlResult> {
+export async function upsertIntentContact(s: { email?: string; phone?: string; firstName?: string; lastName?: string; company?: string; zip?: string; state?: string }, tags: string[], opts: { source?: string } = {}): Promise<GhlResult> {
   const token = process.env.GHL_PRIVATE_TOKEN;
   const locationId = s.state === "FL" ? process.env.GHL_LOCATION_ID_FL : process.env.GHL_LOCATION_ID_BOSTON;
-  const contact = { locationId, email: s.email, phone: s.phone ? normPhone(s.phone) : undefined, firstName: s.firstName, lastName: s.lastName, companyName: s.company, postalCode: s.zip, source: "intent-data", tags };
+  const contact = { locationId, email: s.email, phone: s.phone ? normPhone(s.phone) : undefined, firstName: s.firstName, lastName: s.lastName, companyName: s.company, postalCode: s.zip, source: opts.source ?? "intent-data", tags };
   if (!token || !locationId) return { mode: "dry-run", payloads: { contact } };
   try { const up = await call("/contacts/upsert", "POST", token, contact); return { mode: "live", contactId: up?.contact?.id ?? up?.id }; }
   catch (e) { return { mode: "live", error: (e as Error).message }; }
