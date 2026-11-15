@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { __resetMemoryStore, kv } from "@/lib/server/kv";
 import { dispatch } from "@/lib/ops/api";
-import { normalise, display } from "@/lib/walkthrough/measure";
+import { normalise, display, resolveMeasureSystem } from "@/lib/walkthrough/measure";
+import { uploadsBlockSubmit } from "@/lib/walkthrough/uploads";
 import { hasJpegExif, minimiseMetadata, sniffMime, typeMatches, validateMediaRequest, MEDIA_LIMITS } from "@/lib/walkthrough/media";
 import { escalationsFor, suggestOutcome } from "@/lib/walkthrough/outcome";
 import { PUBLIC_VIEW_KEYS, publicView } from "@/lib/walkthrough/view";
@@ -61,6 +62,22 @@ describe("measurements (ft/in + metric, unknown/estimate, separate from price)",
     expect(normalise({ fieldId: "x", kind: "length", a: -1 }, "metric").ok).toBe(false);
     expect(normalise({ fieldId: "x", kind: "length" }, "metric").ok).toBe(false);
     if (a.ok) { expect(display(a.m, "imperial")).toMatch(/5 ft 6 in/); expect(JSON.stringify(a.m)).not.toMatch(/price|rate|\$/); }
+  });
+  it("resolves the typed system first, then the request, then the stored default", () => {
+    expect(resolveMeasureSystem({ system: "metric" }, "imperial", "imperial")).toBe("metric");
+    expect(resolveMeasureSystem({}, "metric", "imperial")).toBe("metric");
+    expect(resolveMeasureSystem({}, undefined, "metric")).toBe("metric");
+    expect(resolveMeasureSystem({})).toBe("imperial");
+  });
+});
+
+describe("uploadsBlockSubmit", () => {
+  it("blocks while uploads are in flight or still pending, even if an earlier photo is already uploaded", () => {
+    expect(uploadsBlockSubmit({ inFlight: 1, locals: [{ state: "done" }], media: [{ status: "uploaded" }] })).toBe(true);
+    expect(uploadsBlockSubmit({ inFlight: 0, locals: [{ state: "uploading" }], media: [{ status: "uploaded" }] })).toBe(true);
+    expect(uploadsBlockSubmit({ inFlight: 0, locals: [{ state: "done" }], media: [{ status: "pending_upload" }, { status: "uploaded" }] })).toBe(true);
+    expect(uploadsBlockSubmit({ inFlight: 0, locals: [{ state: "done" }, { state: "failed" }], media: [{ status: "uploaded" }] })).toBe(false);
+    expect(uploadsBlockSubmit({ inFlight: 0, locals: [], media: [{ status: "uploaded" }] })).toBe(false);
   });
 });
 
@@ -169,6 +186,25 @@ describe("customer flow: steps, uploads, corrections, resume, submit", () => {
     expect(after.walkthrough.measurementHistory.filter((v: { stepKey: string }) => v.stepKey === "wall#1").length).toBe(2); // versioned, original kept
     // staff outcome
     expect((await ops(`walkthroughs/${c.walkthrough.id}`, { method: "POST", body: JSON.stringify({ action: "set_outcome", outcome: "site_check" }) })).status).toBe(200);
+  });
+  it("validates a measurement in the system it was typed in, even if stored units are still imperial", async () => {
+    const c = await (await ops("walkthroughs", { method: "POST", body: JSON.stringify({ workType: "stone", firstName: "Mo", zip: "33301", units: "imperial" }) })).json();
+    const tok = tokenFrom(c.inviteLink);
+    // Stale request-level units (toggle save still in flight) but the value carries system: metric — 1 m 20 cm must not 422 as inches.
+    const stale = await pub("step", tok, { stepKey: "run#1", answers: {}, measurements: [{ fieldId: "run_length", kind: "length", a: 1, b: 20, system: "metric" }], complete: true });
+    expect(stale.status).toBe(200);
+    expect(stale.j.ok).not.toBe(false);
+    const sess = await pub("session", tok);
+    expect(JSON.stringify(sess.j.walkthrough.measurements)).toMatch(/"system":"metric"/);
+    const staff = await (await ops(`walkthroughs/${c.walkthrough.id}`)).json();
+    expect(JSON.stringify(staff.walkthrough.measurements)).toMatch(/"mm":1200/);
+    // Truly imperial 20 inches (no system override) is still rejected.
+    const bad = await pub("step", tok, { stepKey: "run#1", answers: {}, measurements: [{ fieldId: "run_length", kind: "length", a: 1, b: 20 }], units: "imperial", complete: true });
+    expect(bad.status).toBe(422);
+    expect(String(bad.j.error || "")).toMatch(/Inches must be under 12/);
+    // Request-level units: metric is enough even without per-value system.
+    const top = await pub("step", tok, { stepKey: "run#1", answers: {}, measurements: [{ fieldId: "run_length", kind: "length", a: 1, b: 20 }], units: "metric", complete: true });
+    expect(top.status).toBe(200);
   });
   it("self-start is opt-in (off by default)", async () => {
     await kv.set("lead:data:evt_optin0001", JSON.stringify({ leadId: "evt_optin0001", receivedAt: new Date().toISOString(), lead: { firstName: "Op", zip: "02139" } }));

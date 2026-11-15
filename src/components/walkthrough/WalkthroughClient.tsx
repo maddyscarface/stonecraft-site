@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { walkthroughTemplates, parseStepKey, stepDef, type MeasureField, type Question, type WorkType } from "@/config/walkthrough-templates";
 import { stepKeys } from "@/lib/walkthrough/outcome";
 import { forget, pendingFor, persist, prepareImage, uploadOne, type QueueItem } from "./upload-queue";
+import { uploadsBlockSubmit } from "@/lib/walkthrough/uploads";
 
 /**
  * Customer guided walkthrough (mobile-first). Private, noindex, no prices anywhere.
@@ -32,6 +33,8 @@ export function WalkthroughClient() {
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [meas, setMeas] = useState<MState>({});
   const [locals, setLocals] = useState<Local[]>([]);
+  const [units, setUnits] = useState<"imperial" | "metric">("imperial");
+  const [inFlight, setInFlight] = useState(0);
   const uploading = useRef(0);
 
   const call = useCallback(async (action: string, init?: { body?: unknown; method?: string }, tk = token) => {
@@ -63,6 +66,7 @@ export function WalkthroughClient() {
       const r = await call("session", undefined, tk);
       if (!r.ok) { setErr(r.j.error || "This link is no longer valid."); setScreen("error"); return; }
       setWt(r.j.walkthrough);
+      if (r.j.walkthrough.units === "metric" || r.j.walkthrough.units === "imperial") setUnits(r.j.walkthrough.units);
       setScreen(r.j.walkthrough.status === "submitted" || r.j.walkthrough.status === "closed" ? "done" : "intro");
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -73,7 +77,6 @@ export function WalkthroughClient() {
   const keys = useMemo(() => (t && wt ? stepKeys(t, wt.repeats).filter((k) => !correcting || corrKeys.has(k)) : []), [t, wt, correcting, corrKeys]);
   const key = keys[idx];
   const def = t && key ? stepDef(t, key) : undefined;
-  const units = wt?.units ?? "imperial";
 
   /* load the step's saved answers + measurements into the form */
   useEffect(() => {
@@ -92,15 +95,20 @@ export function WalkthroughClient() {
   /* resume pending uploads from IndexedDB */
   const runQueue = useCallback(async (item: QueueItem) => {
     uploading.current++;
+    setInFlight((n) => n + 1);
     const set = (patch: Partial<Local>) => setLocals((ls) => ls.map((l) => (l.localId === item.localId ? { ...l, ...patch } : l)));
-    for (let attempt = 0; attempt < 4; attempt++) {
-      const r = await uploadOne(item, post, (p) => set({ state: p }));
-      if (r.ok) { await forget(item.localId); set({ state: "done" }); break; }
-      if (r.fatal || attempt === 3) { set({ state: r.fatal ? "rejected" : "failed", error: r.error }); if (r.fatal) await forget(item.localId); break; }
-      set({ state: "retrying", error: r.error });
-      await new Promise((res) => setTimeout(res, 1500 * 2 ** attempt));
+    try {
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const r = await uploadOne(item, post, (p) => set({ state: p }));
+        if (r.ok) { await forget(item.localId); set({ state: "done" }); break; }
+        if (r.fatal || attempt === 3) { set({ state: r.fatal ? "rejected" : "failed", error: r.error }); if (r.fatal) await forget(item.localId); break; }
+        set({ state: "retrying", error: r.error });
+        await new Promise((res) => setTimeout(res, 1500 * 2 ** attempt));
+      }
+    } finally {
+      uploading.current = Math.max(0, uploading.current - 1);
+      setInFlight((n) => Math.max(0, n - 1));
     }
-    uploading.current--;
     const s = await call("session"); if (s.ok) setWt(s.j.walkthrough);
   }, [post, call]);
   useEffect(() => {
@@ -128,9 +136,9 @@ export function WalkthroughClient() {
 
   const buildMeasurements = () => def!.measurements.flatMap<Record<string, unknown>>((f) => {
     const m = meas[f.id]; if (!m) return [];
-    if (m.unknown) return [{ fieldId: f.id, kind: f.kind, unknown: true }];
+    if (m.unknown) return [{ fieldId: f.id, kind: f.kind, unknown: true, system: units }];
     if (m.a === "" && m.b === "") return [];
-    return [{ fieldId: f.id, kind: f.kind, a: m.a === "" ? 0 : Number(m.a), b: m.b === "" ? 0 : Number(m.b), uncertain: m.uncertain }];
+    return [{ fieldId: f.id, kind: f.kind, a: m.a === "" ? 0 : Number(m.a), b: m.b === "" ? 0 : Number(m.b), uncertain: m.uncertain, system: units }];
   });
   const save = async (complete: boolean, extra: Record<string, unknown> = {}) => {
     if (!def || !key) return false;
@@ -150,9 +158,14 @@ export function WalkthroughClient() {
     const n = (wt!.repeats[stepId] ?? def!.repeat!.min) + 1;
     if (await save(true, { repeats: { [stepId]: n } })) { setIdx(idx + 1); window.scrollTo({ top: 0 }); }
   };
-  const switchUnits = async (u: "imperial" | "metric") => { if (u === units || !key) return; const r = await post("step", { stepKey: key, answers, measurements: [], complete: Boolean(wt?.steps[key]?.completed), units: u }); if (r.ok) setWt(r.j.walkthrough); };
+  const switchUnits = (u: "imperial" | "metric") => {
+    if (u === units || !key) return;
+    setUnits(u); // optimistic: labels and the next save use the new system immediately
+    void post("step", { stepKey: key, answers, measurements: [], complete: Boolean(wt?.steps[key]?.completed), units: u }).then((r) => { if (r.ok) setWt(r.j.walkthrough); });
+  };
+  const uploadsPending = uploadsBlockSubmit({ inFlight, locals, media: wt?.media });
   const submit = async () => {
-    if (uploading.current > 0) { setMsg("Please wait for uploads to finish."); return; }
+    if (uploadsPending || uploading.current > 0) { setMsg("Please wait for uploads to finish."); return; }
     setBusy(true); const r = await post("submit", {}); setBusy(false);
     if (r.ok) { setScreen("done"); const s = await call("session"); if (s.ok) setWt(s.j.walkthrough); try { sessionStorage.removeItem(TOKEN_KEY); } catch {} }
     else setMsg(r.j.error || "Couldn't send. Please try again.");
@@ -189,7 +202,7 @@ export function WalkthroughClient() {
         <li>• Measurements are optional. Tick &ldquo;I don&apos;t know&rdquo; or &ldquo;Estimate&rdquo; any time.</li>
         <li>• Photos are private to StoneCraft. We remove location data from photos before storing them where possible.</li>
       </ul>
-      <fieldset className="mt-5"><legend className="label">Measure in</legend><UnitToggle units={units} onChange={(u) => { setIdx(0); void post("step", { stepKey: keys[0], answers: wt.steps[keys[0]!]?.answers ?? {}, measurements: [], units: u, complete: Boolean(wt.steps[keys[0]!]?.completed) }).then((r) => r.ok && setWt(r.j.walkthrough)); }} /></fieldset>
+      <fieldset className="mt-5"><legend className="label">Measure in</legend><UnitToggle units={units} onChange={(u) => { setUnits(u); setIdx(0); void post("step", { stepKey: keys[0], answers: wt.steps[keys[0]!]?.answers ?? {}, measurements: [], units: u, complete: Boolean(wt.steps[keys[0]!]?.completed) }).then((r) => r.ok && setWt(r.j.walkthrough)); }} /></fieldset>
       <button className="btn btn-hunter mt-6 w-full sm:w-auto" data-testid="wt-begin" onClick={() => { const first = keys.findIndex((k) => !wt.steps[k]?.completed); setIdx(first < 0 ? 0 : first); setScreen("step"); }}>{Object.keys(wt.steps).length ? "Continue where you left off" : "Start"}</button>
     </div>
   );
@@ -202,7 +215,7 @@ export function WalkthroughClient() {
           return <li key={k}><button className="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left" onClick={() => { setIdx(i); setScreen("step"); }}><span>{d.title}{n ? ` ${n}` : ""}</span><span className={`text-sm ${short ? "text-red-700" : "text-sage-ink"}`}>{photos} photo{photos === 1 ? "" : "s"}{short ? ` · needs ${d.capture.photosMin}` : ""}{wt.steps[k]?.completed ? " ✓" : ""}</span></button></li>; })}
       </ul>
       {msg && <p className="mt-3 text-sm text-red-700" role="alert">{msg}</p>}
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row"><button className="btn btn-outline" onClick={() => { setIdx(keys.length - 1); setScreen("step"); }}>Back</button><button className="btn btn-hunter" disabled={busy} data-testid="wt-submit" onClick={submit}>{busy ? "Sending…" : "Send to StoneCraft"}</button></div>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row"><button className="btn btn-outline" onClick={() => { setIdx(keys.length - 1); setScreen("step"); }}>Back</button><button className="btn btn-hunter" disabled={busy || uploadsPending} data-testid="wt-submit" onClick={submit}>{uploadsPending ? "Waiting for photos…" : busy ? "Sending…" : "Send to StoneCraft"}</button></div>
       <p className="mt-3 text-xs text-sage-ink">Sending doesn&apos;t book anything. We&apos;ll review and reply by email.</p>
     </div>
   );
