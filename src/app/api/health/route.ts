@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { kvConfigured, memoryStoreBlocked, productionOverrideIgnored } from "@/lib/store";
+import { kvBackend, kvConfigured, memoryStoreBlocked, productionOverrideIgnored } from "@/lib/store";
 import { localUploadsAllowed, supabaseConfigured } from "@/lib/photos";
 import { dmStatus } from "@/lib/datamoon/config";
 import { arProviders } from "@/lib/ar/contract";
@@ -16,7 +16,8 @@ export function GET() {
   return NextResponse.json({
     ok: !memoryStoreBlocked(),
     configured: {
-      storage_upstash: kvConfigured,
+      storage_upstash: kvBackend === "upstash",
+      storage_kv: kvBackend,
       ghl: Boolean(e.GHL_PRIVATE_TOKEN && (e.GHL_LOCATION_ID_BOSTON || e.GHL_LOCATION_ID_FL)),
       crm_webhook_secret: Boolean(e.CRM_WEBHOOK_SECRET),
       meta_capi: Boolean(e.META_PIXEL_ID && e.META_CAPI_TOKEN),

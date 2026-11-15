@@ -1,5 +1,5 @@
 import "server-only";
-import { kvConfigured } from "@/lib/server/kv";
+import { kvBackend } from "@/lib/store";
 import { supabaseConfigured } from "@/lib/server/storage";
 import { dmStatus } from "@/lib/datamoon/config";
 import { listEvents as dmEvents, listImports } from "@/lib/datamoon/store";
@@ -48,7 +48,7 @@ export async function integrationHealth() {
     checkedAt: new Date().toISOString(),
     note: "Configured ≠ verified. Every item stays 'not verified live' until owner test evidence is recorded.",
     markets: { boston: "live", southFlorida: flStatus(), flKillSwitch: "MARKET_FL_PAUSED=true", legacyFlStatusEnvIgnored: Boolean(process.env.MARKET_FL_STATUS) },
-    storage: { kv: kvConfigured ? "upstash" : "memory (NOT durable)", privateFiles: supabaseConfigured() ? "supabase private bucket" : "local tmp sandbox (NOT durable)" },
+    storage: { kv: kvBackend === "memory" ? "memory (NOT durable)" : kvBackend, privateFiles: supabaseConfigured() ? "supabase private bucket" : "local tmp sandbox (NOT durable)" },
     crm: { ghl: process.env.GHL_PRIVATE_TOKEN ? "configured_unverified" : "dry-run (not configured)", bostonLocation: Boolean(process.env.GHL_LOCATION_ID_BOSTON), flLocation: Boolean(process.env.GHL_LOCATION_ID_FL) },
     tracking: { metaCapi: Boolean(process.env.META_CAPI_TOKEN), ga4Mp: Boolean(process.env.GA4_API_SECRET), pixelsConsentGated: true },
     walkthrough: { enabled: process.env.WALKTHROUGH_ENABLED !== "false", selfStart: process.env.WALKTHROUGH_ENABLED !== "false" && process.env.WALKTHROUGH_SELF_START === "true" },
