@@ -1,12 +1,21 @@
 /**
- * Key-value storage: Upstash Redis REST when configured, in-memory otherwise (dev/sandbox only).
- * Used for: lead log, idempotency keys, rate limits, admin overrides (pricing, scoring, zones).
+ * Key-value storage: Upstash Redis REST when configured; otherwise Supabase/Postgres (kv_* RPCs from
+ * migrations/0005_kv_store.up.sql, server-only service-role key) when SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are set;
+ * in-memory otherwise (dev/sandbox only).
+ * Used for: lead log, idempotency keys, rate limits, admin overrides (pricing, scoring, zones), Phase 4 ops/walkthrough data.
  */
 type Json = unknown;
 
 const url = process.env.UPSTASH_REDIS_REST_URL;
 const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-export const kvConfigured = Boolean(url && token);
+const upstash = Boolean(url && token);
+const sbUrl = process.env.SUPABASE_URL?.replace(/\/$/, "");
+const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+/** Supabase KV is used only when Upstash is absent and SUPABASE_KV is not "0". */
+const supa = !upstash && Boolean(sbUrl && sbKey) && process.env.SUPABASE_KV !== "0";
+export const kvBackend: "upstash" | "supabase" | "memory" = upstash ? "upstash" : supa ? "supabase" : "memory";
+export const kvConfigured = kvBackend !== "memory";
+export const kvBackendLabel = kvBackend === "upstash" ? "Upstash" : kvBackend === "supabase" ? "Supabase (Postgres)" : "in-memory (dev)";
 /**
  * Production guard: never keep leads in process memory on a live site (lost on every serverless
  * recycle, not shared between instances). LEAD_ALLOW_MEMORY_STORE=1 is an escape hatch for local,
@@ -28,6 +37,13 @@ const mem = globalThis as unknown as { __scMem?: Map<string, { v: string; exp?: 
 mem.__scMem ??= new Map();
 mem.__scLists ??= new Map();
 
+async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
+  const res = await fetch(`${sbUrl}/rest/v1/rpc/${fn}`, { method: "POST", headers: { apikey: sbKey!, Authorization: `Bearer ${sbKey}`, "Content-Type": "application/json" }, body: JSON.stringify(args), cache: "no-store" });
+  if (!res.ok) throw new Error(`KV ${fn} failed: ${res.status}`);
+  const text = await res.text();
+  return (text ? JSON.parse(text) : null) as T;
+}
+
 async function redis(cmd: (string | number)[]): Promise<unknown> {
   const res = await fetch(url!, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(cmd), cache: "no-store" });
   if (!res.ok) throw new Error(`KV ${cmd[0]} failed: ${res.status}`);
@@ -35,6 +51,7 @@ async function redis(cmd: (string | number)[]): Promise<unknown> {
 }
 
 export async function kvGet<T = Json>(key: string): Promise<T | null> {
+  if (supa) { const r = await rpc<string | null>("kv_get", { p_key: key }); return r ? (JSON.parse(r) as T) : null; }
   if (kvConfigured) { const r = (await redis(["GET", key])) as string | null; return r ? (JSON.parse(r) as T) : null; }
   const e = mem.__scMem!.get(key);
   if (!e || (e.exp && e.exp < Date.now())) return null;
@@ -43,6 +60,7 @@ export async function kvGet<T = Json>(key: string): Promise<T | null> {
 
 export async function kvSet(key: string, value: Json, ttlSec?: number) {
   const v = JSON.stringify(value);
+  if (supa) { await rpc("kv_set", { p_key: key, p_value: v, p_ttl: ttlSec ?? null }); return; }
   if (kvConfigured) { await redis(ttlSec ? ["SET", key, v, "EX", ttlSec] : ["SET", key, v]); return; }
   mem.__scMem!.set(key, { v, exp: ttlSec ? Date.now() + ttlSec * 1000 : undefined });
 }
@@ -50,6 +68,7 @@ export async function kvSet(key: string, value: Json, ttlSec?: number) {
 /** Set only if absent. Returns true if this call created the key. */
 export async function kvSetNx(key: string, value: Json, ttlSec: number): Promise<boolean> {
   const v = JSON.stringify(value);
+  if (supa) return (await rpc<boolean>("kv_setnx", { p_key: key, p_value: v, p_ttl: ttlSec })) === true;
   if (kvConfigured) return (await redis(["SET", key, v, "NX", "EX", ttlSec])) === "OK";
   const e = mem.__scMem!.get(key);
   if (e && (!e.exp || e.exp > Date.now())) return false;
@@ -58,6 +77,7 @@ export async function kvSetNx(key: string, value: Json, ttlSec: number): Promise
 }
 
 export async function kvIncr(key: string, ttlSec: number): Promise<number> {
+  if (supa) return Number(await rpc<number | string>("kv_incr", { p_key: key, p_ttl: ttlSec }));
   if (kvConfigured) { const n = (await redis(["INCR", key])) as number; if (n === 1) await redis(["EXPIRE", key, ttlSec]); return n; }
   const cur = (await kvGet<number>(key)) ?? 0;
   await kvSet(key, cur + 1, ttlSec);
@@ -66,12 +86,14 @@ export async function kvIncr(key: string, ttlSec: number): Promise<number> {
 
 export async function listPush(key: string, value: Json, max = 5000) {
   const v = JSON.stringify(value);
+  if (supa) { await rpc("kv_lpush", { p_key: key, p_value: v, p_max: max }); return; }
   if (kvConfigured) { await redis(["LPUSH", key, v]); await redis(["LTRIM", key, 0, max - 1]); return; }
   const l = mem.__scLists!.get(key) ?? [];
   l.unshift(v); mem.__scLists!.set(key, l.slice(0, max));
 }
 
 export async function listRange<T = Json>(key: string, start = 0, stop = 999): Promise<T[]> {
+  if (supa) return ((await rpc<string[] | null>("kv_lrange", { p_key: key, p_start: start, p_stop: stop })) ?? []).map((s) => JSON.parse(s) as T);
   if (kvConfigured) return ((await redis(["LRANGE", key, start, stop])) as string[]).map((s) => JSON.parse(s) as T);
   return (mem.__scLists!.get(key) ?? []).slice(start, stop + 1).map((s) => JSON.parse(s) as T);
 }
@@ -83,6 +105,7 @@ export async function rateLimit(id: string, limit: number, windowSec: number) {
 
 /** Phase 4: delete a key (used by the ops session / outbox adapter in src/lib/server/kv.ts). */
 export async function kvDel(key: string) {
+  if (supa) { await rpc("kv_del", { p_key: key }); return; }
   if (kvConfigured) { await redis(["DEL", key]); return; }
   mem.__scMem!.delete(key);
   mem.__scLists!.delete(key);
