@@ -35,7 +35,10 @@ async function walkStep(page, { metric = METRIC, repeat = false } = {}) {
     await ((await no.count()) ? no.first() : btns.first()).click();
   }
   for (const t of await step.locator('input[id^="q-"]').all()) if (!(await t.inputValue())) await t.fill("Weeknights after 9pm");
-  if (metric && (await page.getByTestId("wt-units-metric").count())) await page.getByTestId("wt-units-metric").click();
+  if (metric && (await page.getByTestId("wt-units-metric").count())) {
+    await page.getByTestId("wt-units-metric").click();
+    await page.waitForFunction(() => document.querySelector('[data-testid="wt-units-metric"]')?.getAttribute("aria-pressed") === "true", { timeout: 15000 });
+  }
   const rows = await step.locator('[data-testid^="wt-m-"][data-testid$="-a"]').all();
   for (let i = 0; i < rows.length; i++) {
     const id = (await rows[i].getAttribute("data-testid")).replace(/-a$/, "");
@@ -47,6 +50,17 @@ async function walkStep(page, { metric = METRIC, repeat = false } = {}) {
   return key;
 }
 
+// Wait until Send is enabled (uploads finished and badges are in) then click once — no retries.
+async function clickSubmit(page) {
+  const btn = page.getByTestId("wt-submit");
+  await btn.waitFor({ state: "visible", timeout: 20000 });
+  await page.waitForFunction(() => {
+    const b = document.querySelector('[data-testid="wt-submit"]');
+    return !!b && !b.disabled && !document.querySelector('[data-testid="wt-media-pending"]');
+  }, { timeout: 30000 });
+  await btn.click();
+}
+
 async function finish(page) {
   for (let guard = 0; guard < 30; guard++) {
     if (await page.getByTestId("wt-review").isVisible().catch(() => false)) break;
@@ -55,7 +69,7 @@ async function finish(page) {
   await page.getByTestId("wt-review").waitFor();
   const reviewText = await page.getByTestId("wt-review").innerText();
   ok("review screen shows no prices", !money.test(reviewText));
-  await page.getByTestId("wt-submit").click();
+  await clickSubmit(page);
   await page.getByTestId("wt-done").waitFor({ timeout: 20000 });
 }
 
@@ -106,7 +120,7 @@ for (const [workType, width, market, zip] of RUNS) {
   const p2 = await ctx.newPage(); await p2.goto(link, { waitUntil: "networkidle" });
   await p2.getByTestId("wt-corrections").waitFor(); ok("customer sees the correction request", (await p2.getByTestId("wt-corrections").innerText()).includes("daylight"));
   await p2.getByTestId("wt-begin").click(); await walkStep(p2); await p2.getByTestId("wt-review").waitFor({ timeout: 20000 }).catch(() => {});
-  if (await p2.getByTestId("wt-submit").count()) { await p2.getByTestId("wt-submit").click(); await p2.getByTestId("wt-done").waitFor({ timeout: 20000 }); }
+  if (await p2.getByTestId("wt-submit").count()) { await clickSubmit(p2); await p2.getByTestId("wt-done").waitFor({ timeout: 20000 }); }
   ok("corrected walkthrough resubmitted", (await api(`walkthroughs/${id}`)).j.walkthrough?.status === "submitted");
   // Public JSON never carries prices or staff-only fields.
   const s = await fetch(BASE + "/api/walkthrough/session", { headers: { "X-Walkthrough-Token": decodeURIComponent(link.split("#t=")[1]) } });
