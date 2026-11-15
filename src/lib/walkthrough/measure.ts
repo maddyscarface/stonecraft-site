@@ -13,6 +13,8 @@ export type MeasureInput = {
   unknown?: boolean;
   uncertain?: boolean;
   note?: string;
+  /** Unit system this value was typed in. Preferred over a request-level or stored default so a just-switched toggle can't mis-validate. */
+  system?: UnitSystem;
 };
 export type Measurement = {
   fieldId: string; kind: MeasureInput["kind"]; unknown: boolean; uncertain: boolean;
@@ -22,6 +24,19 @@ export type Measurement = {
 const MAX_MM = 100_000; // 100 m
 const MAX_M2 = 10_000;
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)) ? Number(v) : undefined);
+
+/**
+ * Prefer the system the customer typed with (on the value), then the units sent with the request,
+ * then the walkthrough's stored units. This way a measurement entered right after switching to
+ * metric is never validated as inches, even if a slower unit-toggle save is still in flight.
+ */
+export function resolveMeasureSystem(
+  input: Pick<MeasureInput, "system">,
+  requestUnits?: UnitSystem,
+  storedUnits?: UnitSystem,
+): UnitSystem {
+  return input.system ?? requestUnits ?? storedUnits ?? "imperial";
+}
 
 export function normalise(input: MeasureInput, system: UnitSystem): { ok: true; m: Measurement } | { ok: false; error: string } {
   const a = num(input.a), b = num(input.b);

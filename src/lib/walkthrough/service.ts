@@ -6,7 +6,7 @@ import { flCountyForZip } from "@/config/florida-areas";
 import { privateStore } from "@/lib/server/storage";
 import { enqueue } from "@/lib/ops/outbox";
 import { opsAudit } from "@/lib/ops/audit";
-import { normalise, type Measurement } from "./measure";
+import { normalise, resolveMeasureSystem, type Measurement } from "./measure";
 import { extFor, minimiseMetadata, sniffMime, typeMatches, validateMediaRequest } from "./media";
 import { escalationsFor, gapsFor, suggestOutcome } from "./outcome";
 import { createSchema, mediaSignSchema, stepSaveSchema, type Walkthrough } from "./model";
@@ -89,10 +89,10 @@ export async function saveStep(w: Walkthrough, input: unknown, by: { source: "cu
     if (typeof a === "string" && allowed.has(a)) answers[q.id] = a;
   }
   const values: Measurement[] = [];
-  const units = d.units ?? w.units;
   for (const mi of d.measurements) {
     const f = def.measurements.find((x) => x.id === mi.fieldId && x.kind === mi.kind); if (!f) return fail(422, `Unknown measurement ${mi.fieldId}`);
-    const n = normalise(mi, units); if (!n.ok) return fail(422, `${f.label}: ${n.error}`);
+    const system = resolveMeasureSystem(mi, d.units, w.units);
+    const n = normalise(mi, system); if (!n.ok) return fail(422, `${f.label}: ${n.error}`);
     values.push(n.m);
   }
   const now = new Date().toISOString();

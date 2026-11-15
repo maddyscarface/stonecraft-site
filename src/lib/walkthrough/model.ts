@@ -50,6 +50,7 @@ export const measureInputSchema = z.object({
   fieldId: z.string().regex(/^[a-z_]{2,40}$/), kind: z.enum(["length", "area", "count"]),
   a: z.number().nullable().optional(), b: z.number().nullable().optional(),
   unknown: z.boolean().optional(), uncertain: z.boolean().optional(), note: z.string().max(200).optional(),
+  system: z.enum(["imperial", "metric"]).optional(),
 });
 export const stepSaveSchema = z.object({
   stepKey: z.string().regex(KEY),
